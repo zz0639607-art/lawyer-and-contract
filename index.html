@@ -1,0 +1,2723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LexAI — AI Contract Analyzer & Legal Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #111008;
+  --paper: #f7f3ec;
+  --cream: #efe9da;
+  --deep: #1a1608;
+  --gold: #b8922a;
+  --gold-lt: #e2c97e;
+  --gold-pale: #f5edda;
+  --rust: #a63320;
+  --green: #1e6641;
+  --muted: #7a6f5a;
+  --border: #d8ceb8;
+  --white: #ffffff;
+  --shadow: rgba(17,16,8,0.08);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  overflow-x: hidden;
+  cursor: default;
+}
+
+/* GRAIN */
+body::after {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:9999;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  opacity: .5;
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--cream); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius:3px; }
+
+/* ─── NAV ─── */
+nav {
+  position: sticky; top:0; z-index:200;
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 1rem 4rem;
+  background: rgba(247,243,236,0.93);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.logo {
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.75rem; font-weight:700; letter-spacing:-.01em;
+  display:flex; align-items:center; gap:.3rem;
+}
+.logo-scale { font-size:1.3rem; }
+.logo em { font-style:normal; color:var(--gold); }
+
+.nav-links { display:flex; gap:2.2rem; list-style:none; }
+.nav-links a {
+  text-decoration:none; color:var(--muted);
+  font-size:.8rem; font-weight:500; letter-spacing:.08em; text-transform:uppercase;
+  transition:color .2s;
+}
+.nav-links a:hover { color:var(--ink); }
+
+.nav-right { display:flex; align-items:center; gap:1rem; }
+.nav-badge {
+  font-size:.7rem; padding:.25rem .7rem; background:var(--gold-pale);
+  border:1px solid var(--gold-lt); color:var(--gold); border-radius:2px;
+  font-weight:600; letter-spacing:.05em;
+}
+.btn-nav {
+  background:var(--ink); color:var(--paper);
+  border:none; padding:.55rem 1.3rem; border-radius:2px;
+  font-family:'Outfit',sans-serif; font-size:.8rem; font-weight:500;
+  cursor:pointer; letter-spacing:.04em; transition:all .2s;
+}
+.btn-nav:hover { background:var(--gold); color:var(--ink); }
+
+/* ─── LANG SWITCHER ─── */
+.lang-switcher {
+  position:relative;
+}
+.lang-switcher-btn {
+  display:flex; align-items:center; gap:.4rem;
+  background:transparent; border:1px solid var(--border);
+  padding:.45rem .9rem; border-radius:2px; cursor:pointer;
+  font-family:'Outfit',sans-serif; font-size:.78rem; color:var(--ink);
+  transition:all .2s; white-space:nowrap;
+}
+.lang-switcher-btn:hover { border-color:var(--gold); }
+.lang-flag { font-size:.95rem; }
+.lang-dropdown {
+  display:none; position:absolute; top:calc(100% + 6px); right:0;
+  background:var(--white); border:1px solid var(--border);
+  border-radius:4px; box-shadow:0 8px 32px var(--shadow);
+  z-index:300; min-width:160px; overflow:hidden;
+}
+.lang-dropdown.open { display:block; animation:rise .2s ease; }
+.lang-opt {
+  display:flex; align-items:center; gap:.6rem;
+  padding:.6rem 1rem; font-size:.82rem; cursor:pointer;
+  transition:background .15s; color:var(--ink);
+}
+.lang-opt:hover { background:var(--gold-pale); }
+.lang-opt.active { background:var(--cream); font-weight:600; color:var(--gold); }
+
+/* ─── DISCLAIMER BANNER ─── */
+.disclaimer-bar {
+  background:var(--cream); border-bottom:1px solid var(--border);
+  padding:.5rem 4rem;
+  display:flex; align-items:center; gap:.5rem;
+  font-size:.75rem; color:var(--muted);
+}
+.disclaimer-bar b { color:var(--ink); }
+
+/* ─── HERO ─── */
+.hero {
+  max-width:1200px; margin:0 auto;
+  padding: 6rem 4rem 5rem;
+  display:grid; grid-template-columns:1.1fr 1fr; gap:5rem; align-items:center;
+  animation: rise .9s ease both;
+}
+@keyframes rise { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+
+.hero-eyebrow {
+  display:inline-flex; align-items:center; gap:.5rem;
+  font-size:.7rem; letter-spacing:.15em; text-transform:uppercase;
+  color:var(--gold); border:1px solid var(--gold-lt);
+  padding:.3rem .8rem; border-radius:2px; margin-bottom:1.4rem;
+}
+
+h1 {
+  font-family:'Cormorant Garamond',serif;
+  font-size:3.8rem; line-height:1.05; font-weight:700;
+  margin-bottom:1.3rem;
+}
+h1 .accent {
+  color:var(--gold); position:relative; font-style:italic;
+}
+h1 .accent::after {
+  content:''; position:absolute; left:0; right:0; bottom:4px;
+  height:2px; background:var(--gold-lt); z-index:-1;
+}
+
+.hero-p {
+  font-size:1rem; line-height:1.75; color:var(--muted);
+  font-weight:300; margin-bottom:2rem; max-width:480px;
+}
+
+.hero-btns { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:2.5rem; }
+
+.btn-primary {
+  background:var(--ink); color:var(--paper);
+  border:none; padding:.85rem 2rem; border-radius:2px;
+  font-family:'Outfit',sans-serif; font-size:.88rem; font-weight:500;
+  cursor:pointer; letter-spacing:.03em; transition:all .2s;
+}
+.btn-primary:hover { background:var(--gold); color:var(--ink); }
+
+.btn-ghost {
+  background:transparent; color:var(--ink);
+  border:1px solid var(--border); padding:.85rem 2rem; border-radius:2px;
+  font-family:'Outfit',sans-serif; font-size:.88rem;
+  cursor:pointer; transition:all .2s;
+}
+.btn-ghost:hover { border-color:var(--ink); }
+
+.trust-row {
+  display:flex; gap:1.5rem; flex-wrap:wrap;
+}
+.trust-item {
+  display:flex; align-items:center; gap:.4rem;
+  font-size:.75rem; color:var(--muted);
+}
+.trust-dot { width:5px;height:5px;border-radius:50%;background:var(--green); flex-shrink:0; }
+
+/* HERO CARD */
+.hero-card {
+  background:var(--white); border:1px solid var(--border);
+  border-radius:6px; overflow:hidden;
+  box-shadow: 12px 12px 0 var(--cream), 12px 12px 0 1px var(--border);
+  animation: rise .9s .15s ease both;
+}
+.card-topbar {
+  background:var(--ink); padding:.7rem 1.2rem;
+  display:flex; align-items:center; gap:.5rem;
+}
+.dot { width:10px;height:10px;border-radius:50%; }
+.dot-r{background:#c0392b;} .dot-y{background:#e2b03a;} .dot-g{background:#27ae60;}
+.card-title { color:var(--paper); font-size:.75rem; margin-left:.4rem; opacity:.7; }
+
+.card-body { padding:1.4rem; }
+.card-doc-row {
+  display:flex; align-items:center; gap:.8rem;
+  padding-bottom:1rem; border-bottom:1px solid var(--cream); margin-bottom:1rem;
+}
+.doc-thumb {
+  width:38px;height:48px; background:var(--cream);
+  border:1px solid var(--border); border-radius:2px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem; flex-shrink:0;
+}
+.doc-info-name { font-size:.85rem; font-weight:600; }
+.doc-info-sub { font-size:.72rem; color:var(--muted); margin-top:2px; }
+.doc-status {
+  margin-left:auto; font-size:.68rem; padding:.25rem .6rem;
+  background:#eafaf1; color:var(--green); border:1px solid #a9dfbf; border-radius:2px; font-weight:600;
+}
+
+.finding {
+  display:flex; gap:.7rem; padding:.55rem 0;
+  border-bottom:1px solid var(--cream); align-items:flex-start;
+}
+.finding:last-of-type { border:none; }
+.finding-dot {
+  width:9px;height:9px;border-radius:50%;margin-top:3px;flex-shrink:0;
+}
+.fd-h{background:var(--rust);} .fd-m{background:var(--gold);} .fd-l{background:var(--green);}
+.finding-text { font-size:.8rem; line-height:1.5; }
+.finding-label { font-weight:600; }
+.finding-sub { color:var(--muted); font-size:.74rem; }
+
+.lang-row {
+  display:flex; flex-wrap:wrap; gap:.35rem; margin-top:1rem; padding-top:.8rem; border-top:1px solid var(--cream);
+}
+.lang-chip {
+  font-size:.67rem; padding:.18rem .5rem;
+  background:var(--cream); border:1px solid var(--border);
+  border-radius:2px; color:var(--muted);
+}
+
+/* ─── STATS ─── */
+.stats-bar {
+  background:var(--deep); color:var(--paper);
+  padding:2.5rem 4rem;
+  display:flex; justify-content:center; align-items:center;
+  gap:0; flex-wrap:wrap;
+}
+.stat {
+  flex:1; text-align:center; padding:0 2rem;
+  border-right:1px solid rgba(255,255,255,.08);
+  animation: rise .7s ease both;
+}
+.stat:last-child { border-right:none; }
+.stat-n {
+  font-family:'Cormorant Garamond',serif;
+  font-size:2.4rem; font-weight:700; color:var(--gold-lt);
+}
+.stat-l { font-size:.72rem; color:#888; letter-spacing:.08em; text-transform:uppercase; margin-top:.2rem; }
+
+/* ─── SECTION WRAPPER ─── */
+.section {
+  max-width:1200px; margin:0 auto;
+  padding:5rem 4rem;
+}
+.section-eye {
+  font-size:.7rem; letter-spacing:.15em; text-transform:uppercase;
+  color:var(--gold); margin-bottom:.5rem;
+}
+h2 {
+  font-family:'Cormorant Garamond',serif;
+  font-size:2.4rem; font-weight:700; margin-bottom:.5rem;
+}
+.section-sub { font-size:.92rem; color:var(--muted); font-weight:300; margin-bottom:3rem; max-width:540px; }
+
+/* ─── TABS ─── */
+.tabs {
+  display:flex; border-bottom:2px solid var(--border); margin-bottom:2.5rem; gap:0;
+}
+.tab-btn {
+  padding:.9rem 1.8rem; font-family:'Outfit',sans-serif;
+  font-size:.83rem; font-weight:500; cursor:pointer;
+  border:none; background:none; color:var(--muted);
+  border-bottom:2px solid transparent; margin-bottom:-2px;
+  transition:all .2s; letter-spacing:.02em;
+}
+.tab-btn.on { color:var(--ink); border-bottom-color:var(--gold); }
+.tab-btn:hover { color:var(--ink); }
+
+.panel { display:none; }
+.panel.on { display:block; animation:rise .4s ease; }
+
+/* ─── UPLOAD ─── */
+.upload-zone {
+  border:2px dashed var(--border); border-radius:6px;
+  padding:3rem 2rem; text-align:center; cursor:pointer;
+  background:var(--white); transition:all .2s; margin-bottom:1.5rem;
+  position:relative;
+}
+.upload-zone:hover, .upload-zone.over { border-color:var(--gold); background:var(--gold-pale); }
+.upload-zone input { display:none; }
+.upload-ico { font-size:2.8rem; margin-bottom:.8rem; }
+.upload-h { font-family:'Cormorant Garamond',serif; font-size:1.2rem; font-weight:600; margin-bottom:.3rem; }
+.upload-s { font-size:.8rem; color:var(--muted); }
+.upload-file-name { margin-top:.7rem; font-size:.82rem; color:var(--gold); font-weight:500; }
+
+/* ─── FORM ─── */
+.form-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:1rem; margin-bottom:1.2rem; }
+.fg { display:flex; flex-direction:column; gap:.35rem; }
+label {
+  font-size:.72rem; font-weight:600; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--muted);
+}
+select, textarea, input[type=text] {
+  width:100%; padding:.7rem 1rem;
+  border:1px solid var(--border); border-radius:2px;
+  font-family:'Outfit',sans-serif; font-size:.88rem;
+  background:var(--white); color:var(--ink);
+  outline:none; transition:border .2s; appearance:none;
+}
+select:focus, textarea:focus, input:focus { border-color:var(--gold); }
+textarea { resize:vertical; min-height:130px; line-height:1.65; }
+
+.form-note { font-size:.74rem; color:var(--muted); margin-bottom:1.2rem; }
+
+/* ─── LOADING ─── */
+.loader {
+  display:none; align-items:center; gap:.8rem;
+  padding:1.2rem 0; font-size:.85rem; color:var(--muted);
+}
+.loader.on { display:flex; }
+.spin {
+  width:18px;height:18px;border:2px solid var(--border);
+  border-top-color:var(--gold);border-radius:50%;
+  animation:spin .7s linear infinite; flex-shrink:0;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* ─── RESULT ─── */
+.result {
+  display:none; background:var(--white); border:1px solid var(--border);
+  border-radius:6px; overflow:hidden; margin-top:1.5rem;
+  animation:rise .4s ease;
+}
+.result.on { display:block; }
+.result-head {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:1.2rem 1.5rem; border-bottom:1px solid var(--cream);
+  background:var(--paper);
+}
+.result-title { font-family:'Cormorant Garamond',serif; font-size:1.15rem; font-weight:700; }
+.badge {
+  font-size:.68rem; padding:.28rem .7rem; border-radius:2px;
+  font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+}
+.badge-h { background:#fdecea; color:var(--rust); border:1px solid #f5c6c2; }
+.badge-m { background:#fef9ec; color:#a07c10; border:1px solid #f0d98a; }
+.badge-l { background:#eafaf1; color:var(--green); border:1px solid #a9dfbf; }
+.result-body { padding:1.5rem; font-size:.88rem; line-height:1.85; color:#2a2010; white-space:pre-wrap; }
+
+/* ─── 4-MODULE REPORT STYLES ─── */
+.result-mod-label {
+  font-size:.65rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--gold); font-weight:600; margin-bottom:.2rem;
+}
+.result-mod-divider {
+  padding:1rem 1.5rem; border-top:1px solid var(--cream);
+  background:var(--paper);
+}
+.result-mod-title { font-family:'Cormorant Garamond',serif; font-size:1.05rem; font-weight:700; }
+.result-module { padding:1.2rem 1.5rem; font-size:.87rem; line-height:1.8; color:#2a2010; }
+
+/* Risk Meter */
+.risk-meter {
+  width:100px; height:7px; background:var(--cream);
+  border-radius:4px; overflow:hidden; border:1px solid var(--border);
+}
+.risk-bar {
+  height:100%; border-radius:4px; transition:width .8s ease;
+  background: linear-gradient(90deg, #27ae60, #e2b03a, #c0392b);
+}
+.risk-pct { font-family:'Cormorant Garamond',serif; font-size:1.1rem; font-weight:700; color:var(--ink); }
+
+/* Clause matrix table */
+.clause-table { width:100%; border-collapse:collapse; margin:.8rem 0; font-size:.83rem; }
+.clause-table th {
+  background:var(--ink); color:var(--paper);
+  padding:.55rem .9rem; text-align:left; font-size:.7rem;
+  letter-spacing:.08em; text-transform:uppercase; font-weight:500;
+}
+.clause-table td { padding:.6rem .9rem; border-bottom:1px solid var(--cream); vertical-align:top; }
+.clause-table tr:last-child td { border-bottom:none; }
+.clause-table tr:hover td { background:#fdfaf5; }
+.clause-table tr.row-h td { border-left:3px solid var(--rust); }
+.clause-table tr.row-m td { border-left:3px solid var(--gold); }
+.clause-table tr.row-l td { border-left:3px solid var(--green); }
+
+/* Redline blocks */
+.redline-block {
+  border:1px solid var(--border); border-radius:4px;
+  margin:.8rem 0; overflow:hidden;
+}
+.redline-header {
+  background:var(--ink); color:var(--paper);
+  padding:.5rem 1rem; font-size:.75rem; font-weight:600;
+  display:flex; align-items:center; gap:.5rem;
+}
+.redline-orig {
+  background:#fff5f5; border-bottom:1px solid #f5c6c2;
+  padding:.8rem 1rem; font-size:.83rem; line-height:1.6;
+  color:#7a1a1a; font-family:monospace;
+}
+.redline-orig::before { content:'✗ ORIGINAL  '; font-weight:700; font-size:.7rem; letter-spacing:.1em; display:block; margin-bottom:.3rem; opacity:.6; }
+.redline-new {
+  background:#f0faf4; border-bottom:1px solid #a9dfbf;
+  padding:.8rem 1rem; font-size:.83rem; line-height:1.6;
+  color:#0f4a25; font-family:monospace;
+}
+.redline-new::before { content:'✓ REVISED  '; font-weight:700; font-size:.7rem; letter-spacing:.1em; display:block; margin-bottom:.3rem; opacity:.6; }
+.redline-talk {
+  background:var(--gold-pale); padding:.7rem 1rem;
+  font-size:.8rem; color:#6b4f10; line-height:1.6;
+}
+.redline-talk::before { content:'💬 Talk Track: '; font-weight:700; }
+
+/* Alert boxes */
+.alert-box {
+  border-radius:4px; padding:.8rem 1rem; margin:.6rem 0;
+  font-size:.83rem; line-height:1.6; display:flex; gap:.6rem; align-items:flex-start;
+}
+.alert-box.alert-warn { background:#fef9ec; border:1px solid #f0d98a; color:#7a5a00; }
+.alert-box.alert-info { background:#eef6ff; border:1px solid #aacfef; color:#1a4a7a; }
+.alert-box.alert-ok { background:#eafaf1; border:1px solid #a9dfbf; color:#0f4a25; }
+.alert-ico { font-size:1.1rem; flex-shrink:0; margin-top:1px; }
+
+.result-disclaimer {
+  padding:1rem 1.5rem; border-top:1px solid var(--cream);
+  background:var(--cream); font-size:.76rem; color:var(--muted);
+  line-height:1.7; font-style:italic;
+}
+
+/* ─── CHAT ─── */
+.chat-wrap {
+  background:var(--white); border:1px solid var(--border); border-radius:6px; overflow:hidden;
+}
+.chat-header {
+  background:var(--paper); border-bottom:1px solid var(--border);
+  padding:.8rem 1.4rem; display:flex; align-items:center; justify-content:space-between;
+}
+.chat-header-left { display:flex; align-items:center; gap:.6rem; }
+.chat-avatar {
+  width:32px;height:32px;border-radius:50%;
+  background:var(--ink); display:flex; align-items:center; justify-content:center;
+  font-size:.9rem;
+}
+.chat-name { font-size:.85rem; font-weight:600; }
+.chat-status { font-size:.7rem; color:var(--green); display:flex; align-items:center; gap:.3rem; }
+.chat-status::before { content:''; width:6px;height:6px;border-radius:50%;background:var(--green); }
+
+.chat-lang-row {
+  padding:.5rem 1.2rem; border-bottom:1px solid var(--cream);
+  display:flex; align-items:center; gap:.6rem;
+  background:#fdfaf6; font-size:.74rem; color:var(--muted);
+}
+.chat-lang-row select {
+  border:none; background:transparent; font-size:.78rem;
+  color:var(--ink); padding:.1rem .3rem; width:auto;
+}
+
+.chat-msgs {
+  height:400px; overflow-y:auto; padding:1.4rem;
+  display:flex; flex-direction:column; gap:1rem;
+}
+.msg { max-width:78%; animation:rise .3s ease; }
+.msg-u { align-self:flex-end; }
+.msg-a { align-self:flex-start; }
+.msg-who { font-size:.68rem; color:var(--muted); margin-bottom:.3rem; letter-spacing:.04em; }
+.msg-u .msg-who { text-align:right; }
+.bubble {
+  padding:.85rem 1.1rem; border-radius:4px;
+  font-size:.87rem; line-height:1.65;
+}
+.msg-u .bubble { background:var(--ink); color:var(--paper); }
+.msg-a .bubble { background:var(--cream); color:var(--ink); border:1px solid var(--border); }
+
+.typing {
+  display:none; align-items:center; gap:4px;
+  padding:.7rem 1rem; background:var(--cream); border:1px solid var(--border);
+  border-radius:4px; width:fit-content; align-self:flex-start;
+}
+.typing.on { display:flex; }
+.tdot {
+  width:6px;height:6px;border-radius:50%;background:var(--muted);
+  animation:bounce 1.1s infinite;
+}
+.tdot:nth-child(2){animation-delay:.18s}
+.tdot:nth-child(3){animation-delay:.36s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-7px)}}
+
+.chat-input-row {
+  display:flex; border-top:1px solid var(--border);
+}
+.chat-input {
+  flex:1; border:none; padding:1rem 1.3rem;
+  font-family:'Outfit',sans-serif; font-size:.88rem;
+  background:var(--white); outline:none; color:var(--ink);
+}
+.chat-send {
+  background:var(--ink); color:var(--paper);
+  border:none; padding:0 1.6rem; cursor:pointer;
+  font-family:'Outfit',sans-serif; font-size:.83rem; font-weight:500;
+  letter-spacing:.04em; transition:all .2s;
+}
+.chat-send:hover { background:var(--gold); color:var(--ink); }
+
+/* ─── QUICK QUESTIONS ─── */
+.quick-qs {
+  display:flex; flex-wrap:wrap; gap:.5rem; padding:.8rem 1.2rem;
+  border-bottom:1px solid var(--cream); background:#fdfaf6;
+}
+.qq {
+  font-size:.73rem; padding:.3rem .75rem; border:1px solid var(--border);
+  border-radius:2px; background:var(--white); cursor:pointer;
+  color:var(--muted); transition:all .2s;
+}
+.qq:hover { border-color:var(--gold); color:var(--ink); }
+
+/* ─── HOW IT WORKS ─── */
+.how-band {
+  background:var(--cream); border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+}
+.steps-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:2.5rem;
+}
+.step { animation:rise .6s ease both; }
+.step:nth-child(1){animation-delay:.05s}
+.step:nth-child(2){animation-delay:.12s}
+.step:nth-child(3){animation-delay:.19s}
+.step:nth-child(4){animation-delay:.26s}
+.step-num {
+  font-family:'Cormorant Garamond',serif;
+  font-size:3.5rem; font-weight:700; color:var(--gold-lt); line-height:1;
+  margin-bottom:.5rem;
+}
+.step-h { font-size:.95rem; font-weight:600; margin-bottom:.4rem; }
+.step-p { font-size:.8rem; color:var(--muted); line-height:1.6; }
+
+/* ─── FEATURES ─── */
+.feat-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem;
+}
+.feat {
+  background:var(--white); border:1px solid var(--border);
+  border-radius:6px; padding:1.6rem;
+  transition:all .25s; animation:rise .6s ease both;
+}
+.feat:hover { border-color:var(--gold); transform:translateY(-3px); box-shadow:0 6px 24px var(--shadow); }
+.feat-ico { font-size:1.9rem; margin-bottom:.8rem; }
+.feat-h { font-family:'Cormorant Garamond',serif; font-size:1.05rem; font-weight:700; margin-bottom:.35rem; }
+.feat-p { font-size:.8rem; color:var(--muted); line-height:1.65; }
+
+/* ─── CONTRACT TYPES ─── */
+.types-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:1rem;
+}
+.type-card {
+  background:var(--white); border:1px solid var(--border);
+  border-radius:4px; padding:1.2rem 1rem; text-align:center;
+  cursor:pointer; transition:all .2s; animation:rise .5s ease both;
+}
+.type-card:hover { border-color:var(--gold); background:var(--gold-pale); }
+.type-ico { font-size:1.6rem; margin-bottom:.5rem; }
+.type-name { font-size:.8rem; font-weight:600; }
+.type-sub { font-size:.72rem; color:var(--muted); margin-top:.2rem; }
+
+/* ─── TESTIMONIALS ─── */
+.testi-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem;
+}
+.testi {
+  background:var(--white); border:1px solid var(--border);
+  border-radius:6px; padding:1.5rem; animation:rise .6s ease both;
+}
+.testi-stars { color:var(--gold); font-size:1rem; margin-bottom:.7rem; letter-spacing:.05em; }
+.testi-text { font-size:.83rem; line-height:1.7; color:var(--ink); margin-bottom:1rem; font-style:italic; font-family:'Cormorant Garamond',serif; font-size:.95rem; }
+.testi-author { font-size:.75rem; color:var(--muted); font-style:normal; font-family:'Outfit',sans-serif; }
+.testi-author strong { color:var(--ink); display:block; margin-bottom:.1rem; }
+
+/* ─── PRICING ─── */
+.pricing-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem; align-items:start;
+}
+.price-card {
+  background:var(--white); border:1px solid var(--border);
+  border-radius:6px; padding:2rem; animation:rise .6s ease both;
+  transition:all .25s;
+}
+.price-card:hover { border-color:var(--gold); }
+.price-card.featured {
+  background:var(--ink); color:var(--paper);
+  border-color:var(--ink); transform:scale(1.03);
+}
+.price-plan { font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; color:var(--gold); margin-bottom:.6rem; }
+.price-card.featured .price-plan { color:var(--gold-lt); }
+.price-amt {
+  font-family:'Cormorant Garamond',serif;
+  font-size:2.6rem; font-weight:700; line-height:1; margin-bottom:.3rem;
+}
+.price-per { font-size:.78rem; color:var(--muted); margin-bottom:1.5rem; }
+.price-card.featured .price-per { color:#aaa; }
+.price-feats { list-style:none; display:flex; flex-direction:column; gap:.6rem; margin-bottom:1.5rem; }
+.price-feats li { font-size:.82rem; display:flex; align-items:center; gap:.5rem; }
+.price-feats li::before { content:'✓'; color:var(--gold); font-weight:700; flex-shrink:0; }
+.price-card.featured .price-feats li { color:#ccc; }
+.price-card.featured .price-feats li::before { color:var(--gold-lt); }
+.btn-price {
+  width:100%; padding:.8rem; border-radius:2px;
+  font-family:'Outfit',sans-serif; font-size:.85rem; font-weight:500;
+  cursor:pointer; transition:all .2s; letter-spacing:.03em;
+}
+.btn-price-outline {
+  background:transparent; color:var(--ink); border:1px solid var(--border);
+}
+.btn-price-outline:hover { border-color:var(--ink); }
+.btn-price-solid {
+  background:var(--gold); color:var(--ink); border:none;
+}
+.btn-price-solid:hover { background:var(--gold-lt); }
+
+/* ─── FAQ ─── */
+.faq-list { display:flex; flex-direction:column; gap:.8rem; max-width:700px; }
+.faq-item { border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+.faq-q {
+  padding:1rem 1.3rem; font-size:.9rem; font-weight:500;
+  cursor:pointer; display:flex; align-items:center; justify-content:space-between;
+  background:var(--white); transition:background .2s; user-select:none;
+}
+.faq-q:hover { background:var(--gold-pale); }
+.faq-arrow { font-size:.7rem; transition:transform .3s; color:var(--muted); }
+.faq-item.open .faq-arrow { transform:rotate(180deg); }
+.faq-a {
+  display:none; padding:0 1.3rem 1rem; font-size:.83rem;
+  line-height:1.7; color:var(--muted); background:var(--white);
+}
+.faq-item.open .faq-a { display:block; }
+
+/* ─── DISCLAIMER SECTION ─── */
+.disc-section {
+  background:var(--cream); border-top:1px solid var(--border); padding:2.5rem 4rem;
+}
+.disc-inner {
+  max-width:800px; margin:0 auto; text-align:center;
+}
+.disc-box {
+  background:var(--white); border:1px solid var(--border);
+  border-radius:4px; padding:1.2rem 1.8rem;
+  font-size:.77rem; color:var(--muted); line-height:1.8;
+}
+.disc-box b { color:var(--ink); }
+.disc-title {
+  font-family:'Cormorant Garamond',serif;
+  font-size:1rem; font-weight:700; color:var(--muted);
+  margin-bottom:.6rem; display:block; letter-spacing:.05em; text-transform:uppercase;
+}
+
+/* ─── FOOTER ─── */
+footer {
+  background:var(--deep); color:var(--paper);
+  padding:3rem 4rem 2rem;
+}
+.footer-top {
+  display:grid; grid-template-columns:1.5fr 1fr 1fr 1fr; gap:3rem;
+  margin-bottom:2.5rem;
+}
+.footer-brand .logo { font-size:1.5rem; margin-bottom:.7rem; }
+.footer-brand p { font-size:.78rem; color:#777; line-height:1.65; max-width:220px; }
+.footer-col h4 { font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; color:#555; margin-bottom:1rem; }
+.footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+.footer-col ul a { font-size:.8rem; color:#888; text-decoration:none; transition:color .2s; }
+.footer-col ul a:hover { color:var(--gold-lt); }
+.footer-bottom {
+  border-top:1px solid rgba(255,255,255,.07);
+  padding-top:1.5rem; display:flex; align-items:center; justify-content:space-between;
+  font-size:.75rem; color:#555;
+}
+.footer-bottom a { color:#666; text-decoration:none; }
+.footer-bottom a:hover { color:var(--gold-lt); }
+
+/* ─── HAMBURGER ─── */
+.hamburger {
+  display:none; flex-direction:column; gap:5px; cursor:pointer;
+  background:none; border:none; padding:.3rem;
+}
+.hamburger span {
+  display:block; width:22px; height:2px;
+  background:var(--ink); border-radius:2px; transition:all .3s;
+}
+.mobile-menu {
+  display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+  background:rgba(247,243,236,0.98); z-index:500;
+  flex-direction:column; align-items:center; justify-content:center; gap:2rem;
+}
+.mobile-menu.open { display:flex; }
+.mobile-menu a {
+  font-family:'Cormorant Garamond',serif; font-size:2rem; font-weight:700;
+  color:var(--ink); text-decoration:none; transition:color .2s;
+}
+.mobile-menu a:hover { color:var(--gold); }
+.mobile-close {
+  position:absolute; top:1.5rem; right:1.5rem;
+  background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--muted);
+}
+
+/* ─── PROGRESS STEPS ─── */
+.analyze-progress {
+  display:none; flex-direction:column; gap:.6rem; padding:1.2rem 0;
+}
+.analyze-progress.on { display:flex; }
+.prog-step {
+  display:flex; align-items:center; gap:.8rem;
+  font-size:.83rem; color:var(--muted); transition:all .3s;
+}
+.prog-step.active { color:var(--ink); font-weight:500; }
+.prog-step.done { color:var(--green); }
+.prog-dot {
+  width:20px; height:20px; border-radius:50%; flex-shrink:0;
+  border:2px solid var(--border); background:var(--white);
+  display:flex; align-items:center; justify-content:center; font-size:.65rem;
+  transition:all .3s;
+}
+.prog-step.active .prog-dot { border-color:var(--gold); background:var(--gold); color:var(--paper); animation:pulse 1s infinite; }
+.prog-step.done .prog-dot { border-color:var(--green); background:var(--green); color:var(--paper); }
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+
+/* ─── COPY REPORT BUTTON ─── */
+.copy-report-row {
+  display:flex; gap:.8rem; align-items:center; padding:.8rem 1.5rem;
+  background:var(--paper); border-bottom:1px solid var(--cream); flex-wrap:wrap;
+}
+.btn-copy {
+  display:flex; align-items:center; gap:.4rem;
+  background:transparent; border:1px solid var(--border);
+  padding:.4rem .9rem; border-radius:2px; font-size:.78rem; font-family:'Outfit',sans-serif;
+  cursor:pointer; color:var(--muted); transition:all .2s;
+}
+.btn-copy:hover { border-color:var(--ink); color:var(--ink); }
+.btn-copy.copied { border-color:var(--green); color:var(--green); }
+
+/* ─── SAMPLE CONTRACT BANNER ─── */
+.sample-banner {
+  background:var(--gold-pale); border:1px solid var(--gold-lt);
+  border-radius:4px; padding:.7rem 1rem; margin-bottom:1rem;
+  font-size:.8rem; color:#6b4f10; display:flex; align-items:center; gap:.6rem;
+}
+.sample-banner a { color:var(--gold); font-weight:600; cursor:pointer; text-decoration:underline; }
+/* ─── AUTH MODAL ─── */
+.modal-overlay {
+  display:none; position:fixed; inset:0; z-index:1000;
+  background:rgba(17,16,8,0.6); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center; padding:1rem;
+}
+.modal-overlay.open { display:flex; animation:fadeIn .2s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+.modal {
+  background:var(--white); border:1px solid var(--border);
+  border-radius:6px; width:100%; max-width:420px;
+  box-shadow:0 24px 64px rgba(17,16,8,0.2);
+  animation:slideUp .25s ease;
+  overflow:hidden;
+}
+@keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+.modal-head {
+  background:var(--ink); padding:1.4rem 1.8rem;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.modal-head-title {
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.3rem; font-weight:700; color:var(--paper);
+}
+.modal-close {
+  background:none; border:none; color:#888; font-size:1.2rem;
+  cursor:pointer; padding:.2rem; transition:color .2s;
+}
+.modal-close:hover { color:var(--paper); }
+
+.modal-tabs {
+  display:flex; border-bottom:1px solid var(--border);
+}
+.modal-tab {
+  flex:1; padding:.85rem; text-align:center;
+  font-size:.83rem; font-weight:500; cursor:pointer;
+  border:none; background:var(--paper); color:var(--muted);
+  font-family:'Outfit',sans-serif; transition:all .2s;
+  border-bottom:2px solid transparent; margin-bottom:-1px;
+}
+.modal-tab.on { color:var(--ink); border-bottom-color:var(--gold); background:var(--white); }
+
+.modal-body { padding:1.6rem 1.8rem; }
+
+.modal-fg { margin-bottom:1rem; }
+.modal-fg label {
+  display:block; font-size:.72rem; font-weight:600;
+  letter-spacing:.08em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:.35rem;
+}
+.modal-fg input {
+  width:100%; padding:.72rem 1rem;
+  border:1px solid var(--border); border-radius:2px;
+  font-family:'Outfit',sans-serif; font-size:.88rem;
+  background:var(--white); color:var(--ink);
+  outline:none; transition:border .2s;
+}
+.modal-fg input:focus { border-color:var(--gold); }
+
+.modal-err {
+  display:none; background:#fdecea; border:1px solid #f5c6c2;
+  border-radius:2px; padding:.6rem .9rem;
+  font-size:.8rem; color:var(--rust); margin-bottom:1rem;
+}
+.modal-err.show { display:block; }
+
+.modal-ok {
+  display:none; background:#eafaf1; border:1px solid #a9dfbf;
+  border-radius:2px; padding:.6rem .9rem;
+  font-size:.8rem; color:var(--green); margin-bottom:1rem;
+}
+.modal-ok.show { display:block; }
+
+.btn-modal {
+  width:100%; padding:.85rem; background:var(--ink); color:var(--paper);
+  border:none; border-radius:2px; font-family:'Outfit',sans-serif;
+  font-size:.9rem; font-weight:500; cursor:pointer;
+  transition:all .2s; letter-spacing:.03em; margin-top:.3rem;
+}
+.btn-modal:hover { background:var(--gold); color:var(--ink); }
+.btn-modal:disabled { opacity:.6; cursor:not-allowed; }
+
+.modal-switch {
+  text-align:center; margin-top:1rem;
+  font-size:.8rem; color:var(--muted);
+}
+.modal-switch a { color:var(--gold); cursor:pointer; font-weight:600; }
+
+.modal-forgot {
+  text-align:right; margin-top:-.5rem; margin-bottom:.8rem;
+}
+.modal-forgot a { font-size:.76rem; color:var(--gold); cursor:pointer; }
+
+/* ─── USER MENU ─── */
+.user-menu { position:relative; }
+.user-btn {
+  display:flex; align-items:center; gap:.5rem;
+  background:var(--cream); border:1px solid var(--border);
+  padding:.45rem .9rem; border-radius:2px; cursor:pointer;
+  font-family:'Outfit',sans-serif; font-size:.8rem;
+  color:var(--ink); transition:all .2s;
+}
+.user-btn:hover { border-color:var(--gold); }
+.user-avatar {
+  width:22px; height:22px; border-radius:50%;
+  background:var(--ink); color:var(--paper);
+  display:flex; align-items:center; justify-content:center;
+  font-size:.65rem; font-weight:700; flex-shrink:0;
+}
+.user-dropdown {
+  display:none; position:absolute; top:calc(100% + 6px); right:0;
+  background:var(--white); border:1px solid var(--border);
+  border-radius:4px; box-shadow:0 8px 32px var(--shadow);
+  z-index:300; min-width:200px; overflow:hidden;
+}
+.user-dropdown.open { display:block; animation:rise .2s ease; }
+.user-info {
+  padding:.9rem 1rem; border-bottom:1px solid var(--cream);
+  font-size:.78rem;
+}
+.user-info-name { font-weight:600; color:var(--ink); }
+.user-info-plan {
+  display:inline-block; margin-top:.3rem;
+  font-size:.67rem; padding:.15rem .5rem;
+  background:var(--gold-pale); border:1px solid var(--gold-lt);
+  color:var(--gold); border-radius:2px; font-weight:600;
+  letter-spacing:.05em; text-transform:uppercase;
+}
+.user-usage {
+  padding:.7rem 1rem; border-bottom:1px solid var(--cream);
+  font-size:.75rem; color:var(--muted);
+}
+.usage-bar-wrap { margin-top:.3rem; background:var(--cream); border-radius:3px; height:5px; }
+.usage-bar-fill { height:5px; border-radius:3px; background:var(--gold); transition:width .4s; }
+.udrop-item {
+  padding:.65rem 1rem; font-size:.82rem; cursor:pointer;
+  color:var(--ink); transition:background .15s; display:flex; align-items:center; gap:.5rem;
+}
+.udrop-item:hover { background:var(--gold-pale); }
+.udrop-item.danger { color:var(--rust); }
+.udrop-item.danger:hover { background:#fdecea; }
+
+/* ─── USAGE BADGE IN TOOL SECTION ─── */
+.usage-notice {
+  display:none; align-items:center; gap:.6rem;
+  padding:.6rem 1rem; border-radius:4px; margin-bottom:1rem;
+  font-size:.8rem;
+}
+.usage-notice.show { display:flex; }
+.usage-notice.warn { background:#fef9ec; border:1px solid #f0d98a; color:#7a5a00; }
+.usage-notice.danger { background:#fdecea; border:1px solid #f5c6c2; color:var(--rust); }
+  nav{padding:1rem 1.5rem;}
+  .nav-links{display:none;}
+  .hamburger{display:flex;}
+  .nav-badge{display:none;}
+  .hero{grid-template-columns:1fr;padding:3rem 1.5rem;gap:2.5rem;}
+  h1{font-size:2.6rem;}
+  .stats-bar{padding:2rem 1.5rem;gap:1.5rem;}
+  .stat{padding:0 1rem;}
+  .section{padding:3.5rem 1.5rem;}
+  .steps-grid{grid-template-columns:1fr 1fr;}
+  .feat-grid{grid-template-columns:1fr;}
+  .types-grid{grid-template-columns:1fr 1fr;}
+  .testi-grid{grid-template-columns:1fr;}
+  .pricing-grid{grid-template-columns:1fr;}
+  .price-card.featured{transform:none;}
+  .footer-top{grid-template-columns:1fr 1fr;}
+  .form-grid{grid-template-columns:1fr 1fr;}
+  .disc-section{padding:2rem 1.5rem;}
+  footer{padding:2rem 1.5rem;}
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="authModal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-head-title" id="modalTitle">⚖️ Welcome to LexAI</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-tabs" id="modalTabs">
+      <button class="modal-tab on" onclick="switchModalTab('login')">Log In</button>
+      <button class="modal-tab" onclick="switchModalTab('register')">Sign Up</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-err" id="modalErr"></div>
+      <div class="modal-ok"  id="modalOk"></div>
+
+      <!-- LOGIN FORM -->
+      <div id="formLogin">
+        <div class="modal-fg">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div class="modal-fg">
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitLogin()">
+        </div>
+        <div class="modal-forgot"><a onclick="switchModalTab('forgot')">Forgot password?</a></div>
+        <button class="btn-modal" id="loginBtn" onclick="submitLogin()">Log In →</button>
+        <div class="modal-switch">Don't have an account? <a onclick="switchModalTab('register')">Sign up free</a></div>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <div id="formRegister" style="display:none">
+        <div class="modal-fg">
+          <label>Display Name (optional)</label>
+          <input type="text" id="regName" placeholder="Your name" autocomplete="name">
+        </div>
+        <div class="modal-fg">
+          <label>Email</label>
+          <input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div class="modal-fg">
+          <label>Password (min 8 chars, include a number)</label>
+          <input type="password" id="regPassword" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitRegister()">
+        </div>
+        <button class="btn-modal" id="registerBtn" onclick="submitRegister()">Create Account →</button>
+        <div class="modal-switch">Already have an account? <a onclick="switchModalTab('login')">Log in</a></div>
+      </div>
+
+      <!-- FORGOT PASSWORD FORM -->
+      <div id="formForgot" style="display:none">
+        <p style="font-size:.83rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">Enter your email and we'll send a reset link.</p>
+        <div class="modal-fg">
+          <label>Email</label>
+          <input type="email" id="forgotEmail" placeholder="you@example.com">
+        </div>
+        <button class="btn-modal" onclick="submitForgot()">Send Reset Link →</button>
+        <div class="modal-switch"><a onclick="switchModalTab('login')">← Back to login</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-close" onclick="closeMobile()">✕</button>
+  <a href="#tool" onclick="closeMobile()">Analyze</a>
+  <a href="#how" onclick="closeMobile()">How It Works</a>
+  <a href="#features" onclick="closeMobile()">Features</a>
+  <a href="#pricing" onclick="closeMobile()">Pricing</a>
+  <a href="#faq" onclick="closeMobile()">FAQ</a>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo"><span class="logo-scale">⚖️</span> Lex<em>AI</em></div>
+  <ul class="nav-links">
+    <li><a href="#tool">Analyze</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#faq">FAQ</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="nav-badge">Powered by Gemini</span>
+    <div class="lang-switcher" id="langSwitcher">
+      <button class="lang-switcher-btn" onclick="toggleLangMenu()" id="langBtn">
+        <span class="lang-flag" id="currentFlag">🌐</span>
+        <span id="currentLangLabel">EN</span> ▾
+      </button>
+      <div class="lang-dropdown" id="langDropdown">
+        <div class="lang-opt active" onclick="setLang('en')">🇺🇸 English</div>
+        <div class="lang-opt" onclick="setLang('zh')">🇨🇳 中文（简体）</div>
+        <div class="lang-opt" onclick="setLang('zh_tw')">🇹🇼 中文（繁體）</div>
+        <div class="lang-opt" onclick="setLang('es')">🇪🇸 Español</div>
+        <div class="lang-opt" onclick="setLang('fr')">🇫🇷 Français</div>
+        <div class="lang-opt" onclick="setLang('de')">🇩🇪 Deutsch</div>
+        <div class="lang-opt" onclick="setLang('ja')">🇯🇵 日本語</div>
+        <div class="lang-opt" onclick="setLang('ko')">🇰🇷 한국어</div>
+        <div class="lang-opt" onclick="setLang('ar')">🇸🇦 العربية</div>
+        <div class="lang-opt" onclick="setLang('pt')">🇧🇷 Português</div>
+      </div>
+    </div>
+
+    <!-- Guest buttons (shown when not logged in) -->
+    <div id="guestBtns" style="display:flex;gap:.5rem;align-items:center;">
+      <button class="btn-ghost" style="padding:.45rem 1rem;font-size:.8rem;" onclick="openModal('login')">Log In</button>
+      <button class="btn-nav" onclick="openModal('register')" data-i18n="nav_cta">Start Free →</button>
+    </div>
+
+    <!-- User menu (shown when logged in) -->
+    <div class="user-menu" id="userMenu" style="display:none;">
+      <button class="user-btn" onclick="toggleUserMenu()">
+        <div class="user-avatar" id="navAvatar">?</div>
+        <span id="navName">Account</span> ▾
+      </button>
+      <div class="user-dropdown" id="userDropdown">
+        <div class="user-info">
+          <div class="user-info-name" id="dropName">—</div>
+          <div class="user-info-plan" id="dropPlan">FREE</div>
+        </div>
+        <div class="user-usage" id="dropUsage">
+          <div>Analyses this month</div>
+          <div class="usage-bar-wrap"><div class="usage-bar-fill" id="usageBar" style="width:0%"></div></div>
+          <div id="usageText" style="margin-top:.3rem;">— / —</div>
+        </div>
+        <div class="udrop-item" onclick="closeUserMenu();scrollTo('tool')">📄 Analyze Contract</div>
+        <div class="udrop-item" onclick="closeUserMenu();switchTab('lawyer')">💬 AI Lawyer</div>
+        <div class="udrop-item" onclick="openChangePassword()">🔑 Change Password</div>
+        <div class="udrop-item danger" onclick="logout()">↩ Log Out</div>
+      </div>
+    </div>
+
+    <button class="hamburger" onclick="document.getElementById('mobileMenu').classList.add('open')" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- DISCLAIMER BAR -->
+<div class="disclaimer-bar">
+  ⚖️&nbsp; <b data-i18n="disc_bar_bold">Legal Notice:</b>&nbsp;<span data-i18n="disc_bar_text">LexAI provides AI-generated analysis for informational purposes only — not professional legal advice. Consult a licensed attorney for important legal decisions.</span>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div>
+    <span class="hero-eyebrow" data-i18n="hero_eyebrow">✦ AI-Powered Legal Intelligence</span>
+    <h1 data-i18n="hero_h1">Understand any contract<br>in <span class="accent">any language</span></h1>
+    <p class="hero-p" data-i18n="hero_p">Upload your contract and get instant AI analysis of risks, hidden clauses, and obligations — in your own language. Then chat with our AI lawyer 24/7 for free.</p>
+    <div class="hero-btns">
+      <button class="btn-primary" onclick="scrollTo('tool')" data-i18n="hero_btn1">Analyze a Contract →</button>
+      <button class="btn-ghost" onclick="scrollTo('tool');switchTab('lawyer')" data-i18n="hero_btn2">Chat with AI Lawyer</button>
+    </div>
+    <div class="trust-row">
+      <span class="trust-item"><span class="trust-dot"></span><span data-i18n="trust1">200+ languages</span></span>
+      <span class="trust-item"><span class="trust-dot"></span><span data-i18n="trust2">Free to start</span></span>
+      <span class="trust-item"><span class="trust-dot"></span><span data-i18n="trust3">No account needed</span></span>
+      <span class="trust-item"><span class="trust-dot"></span><span data-i18n="trust4">Private &amp; secure</span></span>
+    </div>
+  </div>
+  <div class="hero-card">
+    <div class="card-topbar">
+      <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+      <span class="card-title">Contract Analysis — Employment.pdf</span>
+    </div>
+    <div class="card-body">
+      <div class="card-doc-row">
+        <div class="doc-thumb">📄</div>
+        <div>
+          <div class="doc-info-name">Employment Contract</div>
+          <div class="doc-info-sub">Analyzed in 2.3 seconds · 4 risks found</div>
+        </div>
+        <div class="doc-status">✓ Complete</div>
+      </div>
+      <div class="finding">
+        <div class="finding-dot fd-h"></div>
+        <div class="finding-text">
+          <div class="finding-label">Non-compete — 3 years</div>
+          <div class="finding-sub">Unusually long. May be unenforceable in many jurisdictions.</div>
+        </div>
+      </div>
+      <div class="finding">
+        <div class="finding-dot fd-h"></div>
+        <div class="finding-text">
+          <div class="finding-label">Unlimited liability clause</div>
+          <div class="finding-sub">Employee bears unlimited damages for data breaches. Highly unusual.</div>
+        </div>
+      </div>
+      <div class="finding">
+        <div class="finding-dot fd-m"></div>
+        <div class="finding-text">
+          <div class="finding-label">Overtime pay not specified</div>
+          <div class="finding-sub">Section 4.2 lacks clarity on overtime compensation rates.</div>
+        </div>
+      </div>
+      <div class="finding">
+        <div class="finding-dot fd-l"></div>
+        <div class="finding-text">
+          <div class="finding-label">30-day termination notice</div>
+          <div class="finding-sub">Standard and fair. No action needed.</div>
+        </div>
+      </div>
+      <div class="lang-row">
+        <span class="lang-chip">中文</span><span class="lang-chip">English</span>
+        <span class="lang-chip">Español</span><span class="lang-chip">Français</span>
+        <span class="lang-chip">日本語</span><span class="lang-chip">한국어</span>
+        <span class="lang-chip">العربية</span><span class="lang-chip">+193 more</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat" style="animation-delay:.05s"><div class="stat-n">200+</div><div class="stat-l" data-i18n="stat1">Languages</div></div>
+  <div class="stat" style="animation-delay:.1s"><div class="stat-n">&lt;5s</div><div class="stat-l" data-i18n="stat2">Analysis Time</div></div>
+  <div class="stat" style="animation-delay:.15s"><div class="stat-n">24/7</div><div class="stat-l" data-i18n="stat3">AI Lawyer</div></div>
+  <div class="stat" style="animation-delay:.2s"><div class="stat-n">12+</div><div class="stat-l" data-i18n="stat4">Contract Types</div></div>
+  <div class="stat" style="animation-delay:.25s"><div class="stat-n">Free</div><div class="stat-l" data-i18n="stat5">To Get Started</div></div>
+</div>
+
+<!-- CONTRACT TYPES -->
+<div class="section">
+  <div class="section-eye" data-i18n="types_eye">What we analyze</div>
+  <h2 data-i18n="types_h2">Every contract type covered</h2>
+  <p class="section-sub" data-i18n="types_sub">From employment to real estate — LexAI understands the nuances of every major contract category.</p>
+  <div class="types-grid">
+    <div class="type-card" onclick="setType('employment');scrollTo('tool')">
+      <div class="type-ico">💼</div>
+      <div class="type-name">Employment</div>
+      <div class="type-sub">Job offers, work agreements</div>
+    </div>
+    <div class="type-card" onclick="setType('rental');scrollTo('tool')">
+      <div class="type-ico">🏠</div>
+      <div class="type-name">Rental / Lease</div>
+      <div class="type-sub">Apartment, office, property</div>
+    </div>
+    <div class="type-card" onclick="setType('nda');scrollTo('tool')">
+      <div class="type-ico">🔒</div>
+      <div class="type-name">NDA</div>
+      <div class="type-sub">Confidentiality agreements</div>
+    </div>
+    <div class="type-card" onclick="setType('service');scrollTo('tool')">
+      <div class="type-ico">🤝</div>
+      <div class="type-name">Service Agreement</div>
+      <div class="type-sub">Freelance, consulting, SaaS</div>
+    </div>
+    <div class="type-card" onclick="setType('purchase');scrollTo('tool')">
+      <div class="type-ico">🛒</div>
+      <div class="type-name">Purchase</div>
+      <div class="type-sub">Sales, asset transfers</div>
+    </div>
+    <div class="type-card" onclick="setType('partnership');scrollTo('tool')">
+      <div class="type-ico">🏢</div>
+      <div class="type-name">Partnership</div>
+      <div class="type-sub">Business ventures, JVs</div>
+    </div>
+    <div class="type-card" onclick="setType('loan');scrollTo('tool')">
+      <div class="type-ico">💰</div>
+      <div class="type-name">Loan / Finance</div>
+      <div class="type-sub">Loans, credit, mortgages</div>
+    </div>
+    <div class="type-card" onclick="setType('general');scrollTo('tool')">
+      <div class="type-ico">📋</div>
+      <div class="type-name">Other / General</div>
+      <div class="type-sub">Any contract type</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN TOOL -->
+<div style="background:var(--cream);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+<div class="section" id="tool">
+  <div class="section-eye" data-i18n="tool_eye">Your AI Legal Assistant</div>
+  <h2 data-i18n="tool_h2">Analyze &amp; Consult</h2>
+  <p class="section-sub" data-i18n="tool_sub">Paste your contract text and get a full risk report, or chat with the AI lawyer in real time.</p>
+
+  <!-- BACKEND URL CONFIG -->
+  <div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:1rem 1.3rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+    <span style="font-size:.78rem;color:var(--muted);font-weight:500;white-space:nowrap;">🔌 <span data-i18n="api_label">Backend URL</span></span>
+    <input type="text" id="apiKey" value="http://localhost:8000" placeholder="http://localhost:8000  or  https://your-app.railway.app" style="flex:1;min-width:200px;font-size:.82rem;padding:.5rem .8rem;">
+    <span id="connStatus" style="font-size:.75rem;color:var(--muted);white-space:nowrap;">⚪ Not tested</span>
+    <button onclick="testConnection()" style="font-size:.75rem;padding:.4rem .9rem;border:1px solid var(--border);border-radius:2px;background:transparent;cursor:pointer;font-family:'Outfit',sans-serif;color:var(--muted);" data-i18n="api_link">Test connection →</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn on" onclick="switchTab('analyze')" data-i18n="tab_analyze">📄 Contract Analysis</button>
+    <button class="tab-btn" onclick="switchTab('lawyer')" id="tab-lawyer" data-i18n="tab_lawyer">💬 AI Lawyer Chat</button>
+  </div>
+
+  <!-- ANALYZE PANEL -->
+  <div class="panel on" id="panel-analyze">
+    <div class="usage-notice" id="usageNotice"></div>
+
+    <!-- SAMPLE CONTRACT HINT -->
+    <div class="sample-banner">
+      💡 No contract handy? <a onclick="loadSample()">Load a sample employment contract</a> to try it out.
+    </div>
+
+    <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileIn').click()">
+      <input type="file" id="fileIn" accept=".txt,.pdf,.doc,.docx">
+      <div class="upload-ico">📋</div>
+      <div class="upload-h" data-i18n="upload_h">Drop your contract here or click to browse</div>
+      <div class="upload-s" data-i18n="upload_s">Supports TXT, PDF, DOCX · Any language accepted</div>
+      <div class="upload-file-name" id="fileName"></div>
+    </div>
+
+    <div class="fg" style="margin-bottom:1.2rem;">
+      <label data-i18n="paste_label">Or paste contract text directly</label>
+      <textarea id="contractTxt" data-i18n-placeholder="paste_ph" placeholder="Paste the full text of your contract here. Any language is accepted — Chinese, Arabic, Spanish, French, Japanese…"></textarea>
+    </div>
+
+    <div class="form-grid">
+      <div class="fg">
+        <label data-i18n="ctype_label">Contract Type</label>
+        <select id="cType">
+          <option value="General Contract" data-i18n="ct_general">General Contract</option>
+          <option value="Employment Contract" data-i18n="ct_employment">Employment Contract</option>
+          <option value="Rental / Lease Agreement" data-i18n="ct_rental">Rental / Lease Agreement</option>
+          <option value="NDA / Confidentiality" data-i18n="ct_nda">NDA / Confidentiality</option>
+          <option value="Service Agreement" data-i18n="ct_service">Service Agreement</option>
+          <option value="Purchase Agreement" data-i18n="ct_purchase">Purchase Agreement</option>
+          <option value="Partnership / JV" data-i18n="ct_partnership">Partnership / JV</option>
+          <option value="Loan / Finance Agreement" data-i18n="ct_loan">Loan / Finance Agreement</option>
+          <option value="Franchise Agreement" data-i18n="ct_franchise">Franchise Agreement</option>
+          <option value="IP / License Agreement" data-i18n="ct_ip">IP / License Agreement</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label data-i18n="role_label">Your Role in This Contract</label>
+        <select id="cRole">
+          <option value="General / Unknown">Not sure / General</option>
+          <option value="Employee / Worker">Employee / Worker</option>
+          <option value="Employer / Company">Employer / Company</option>
+          <option value="Tenant / Renter">Tenant / Renter</option>
+          <option value="Landlord / Owner">Landlord / Owner</option>
+          <option value="Buyer / Client">Buyer / Client</option>
+          <option value="Seller / Vendor">Seller / Vendor</option>
+          <option value="Service Provider / Freelancer">Freelancer / Contractor</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Jurisdiction</label>
+        <select id="cJurisdiction">
+          <option value="International">🌐 International</option>
+          <option value="United States">🇺🇸 United States</option>
+          <option value="United Kingdom">🇬🇧 United Kingdom</option>
+          <option value="European Union">🇪🇺 European Union</option>
+          <option value="China">🇨🇳 China (PRC)</option>
+          <option value="Singapore">🇸🇬 Singapore</option>
+          <option value="Australia">🇦🇺 Australia</option>
+          <option value="Canada">🇨🇦 Canada</option>
+          <option value="Germany">🇩🇪 Germany</option>
+          <option value="France">🇫🇷 France</option>
+          <option value="Japan">🇯🇵 Japan</option>
+          <option value="South Korea">🇰🇷 South Korea</option>
+          <option value="India">🇮🇳 India</option>
+          <option value="UAE">🇦🇪 UAE</option>
+          <option value="Brazil">🇧🇷 Brazil</option>
+          <option value="Hong Kong">🇭🇰 Hong Kong</option>
+          <option value="Other">Other / Unknown</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label data-i18n="outlang_label">Report Language</label>
+        <select id="outLang">
+          <option>English</option>
+          <option>中文（简体）</option>
+          <option>中文（繁體）</option>
+          <option>Español</option>
+          <option>Français</option>
+          <option>Deutsch</option>
+          <option>日本語</option>
+          <option>한국어</option>
+          <option>العربية</option>
+          <option>Português</option>
+          <option>Русский</option>
+          <option>हिन्दी</option>
+          <option>Italiano</option>
+          <option>Nederlands</option>
+          <option>Türkçe</option>
+          <option>Tiếng Việt</option>
+          <option>ภาษาไทย</option>
+          <option>Bahasa Indonesia</option>
+          <option>Polski</option>
+          <option>Svenska</option>
+          <option>Українська</option>
+          <option>Română</option>
+          <option>Magyar</option>
+          <option>Čeština</option>
+          <option>Dansk</option>
+          <option>Suomi</option>
+          <option>Norsk</option>
+          <option>Ελληνικά</option>
+          <option>עברית</option>
+          <option>فارسی</option>
+          <option>বাংলা</option>
+          <option>தமிழ்</option>
+          <option>Swahili</option>
+        </select>
+      </div>
+    </div>
+
+    <p class="form-note" data-i18n="privacy_note">🔒 Your contract text is sent directly to Google's AI and is not stored by LexAI.</p>
+
+    <button class="btn-primary" onclick="analyze()" data-i18n="analyze_btn">Analyze Contract →</button>
+
+    <div class="analyze-progress" id="aLoader">
+      <div class="prog-step" id="ps1"><div class="prog-dot">1</div> Reading contract text…</div>
+      <div class="prog-step" id="ps2"><div class="prog-dot">2</div> Applying jurisdiction rules…</div>
+      <div class="prog-step" id="ps3"><div class="prog-dot">3</div> Scanning for risk clauses…</div>
+      <div class="prog-step" id="ps4"><div class="prog-dot">4</div> Generating redline suggestions…</div>
+      <div class="prog-step" id="ps5"><div class="prog-dot">5</div> Finalizing report…</div>
+    </div>
+
+    <div class="result" id="aResult">
+      <!-- COPY ROW -->
+      <div class="copy-report-row">
+        <span style="font-size:.75rem;color:var(--muted);flex:1;">📋 Analysis complete</span>
+        <button class="btn-copy" id="copyBtn" onclick="copyReport()">📋 Copy Report</button>
+        <button class="btn-copy" onclick="window.print()">🖨️ Print</button>
+        <button class="btn-copy" onclick="document.getElementById('aResult').classList.remove('on');document.getElementById('contractTxt').value=''">✕ Clear</button>
+      </div>
+      <!-- MODULE 1: EXECUTIVE SUMMARY -->
+      <div class="result-head">
+        <div>
+          <div class="result-mod-label">Module 1</div>
+          <div class="result-title">📊 Executive Summary & Risk Score</div>
+        </div>
+        <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;">
+          <span class="badge badge-m" id="riskBadge">Analyzing…</span>
+          <div class="risk-meter" id="riskMeter">
+            <div class="risk-bar" id="riskBar" style="width:0%"></div>
+          </div>
+          <span class="risk-pct" id="riskPct">—</span>
+        </div>
+      </div>
+      <div class="result-module" id="mod1Body"></div>
+
+      <!-- MODULE 2: CLAUSE MATRIX -->
+      <div class="result-mod-divider">
+        <div class="result-mod-label">Module 2</div>
+        <div class="result-mod-title">🔍 Key Clause Analysis Matrix</div>
+      </div>
+      <div class="result-module" id="mod2Body"></div>
+
+      <!-- MODULE 3: REDLINE -->
+      <div class="result-mod-divider">
+        <div class="result-mod-label">Module 3</div>
+        <div class="result-mod-title">✏️ Redline & Suggested Revisions</div>
+      </div>
+      <div class="result-module" id="mod3Body"></div>
+
+      <!-- MODULE 4: LOCAL ALERTS -->
+      <div class="result-mod-divider">
+        <div class="result-mod-label">Module 4</div>
+        <div class="result-mod-title">🌐 Local Adaptation Alerts</div>
+      </div>
+      <div class="result-module" id="mod4Body"></div>
+
+      <!-- DISCLAIMER FOOTER -->
+      <div class="result-disclaimer">
+        ⚖️ <em>Disclaimer: LexAI provides AI-powered legal analysis for informational purposes only and does not constitute formal legal advice. Consult a qualified attorney for critical legal matters.</em>
+      </div>
+    </div>
+  </div>
+
+  <!-- LAWYER PANEL -->
+  <div class="panel" id="panel-lawyer">
+    <div class="chat-wrap">
+      <div class="chat-header">
+        <div class="chat-header-left">
+          <div class="chat-avatar">⚖️</div>
+          <div>
+            <div class="chat-name">LexAI Legal Assistant</div>
+            <div class="chat-status">Online · Ready to help</div>
+          </div>
+        </div>
+        <div class="chat-lang-row" style="border:none;padding:0;background:none;">
+          <span style="font-size:.72rem;color:var(--muted);">Reply in:</span>
+          <select id="chatLang" style="border:none;background:transparent;font-size:.78rem;color:var(--ink);">
+            <option>English</option>
+            <option>中文（简体）</option>
+            <option>Español</option>
+            <option>Français</option>
+            <option>Deutsch</option>
+            <option>日本語</option>
+            <option>한국어</option>
+            <option>العربية</option>
+            <option>Português</option>
+            <option>Русский</option>
+            <option>हिन्दी</option>
+            <option>Italiano</option>
+            <option>Tiếng Việt</option>
+            <option>ภาษาไทย</option>
+            <option>Bahasa Indonesia</option>
+          </select>
+        </div>
+      </div>
+      <div class="quick-qs">
+        <span style="font-size:.72rem;color:var(--muted);align-self:center;">Quick ask:</span>
+        <button class="qq" onclick="askQuick(this)">What is a non-compete clause?</button>
+        <button class="qq" onclick="askQuick(this)">Is this contract enforceable?</button>
+        <button class="qq" onclick="askQuick(this)">What are my rights as a tenant?</button>
+        <button class="qq" onclick="askQuick(this)">How do I negotiate a contract?</button>
+        <button class="qq" onclick="askQuick(this)">What is force majeure?</button>
+        <button class="qq" onclick="askQuick(this)">Explain arbitration clauses</button>
+      </div>
+      <div class="chat-msgs" id="chatMsgs">
+        <div class="msg msg-a">
+          <div class="msg-who">⚖️ LexAI Lawyer</div>
+          <div class="bubble">Hello! I'm your AI legal assistant. I can help you understand contracts, explain legal terms, identify red flags, and answer general legal questions — in any language you prefer.<br><br>What would you like to know today?<br><br><em style="font-size:.8em;opacity:.65">Note: I provide general legal information, not licensed legal advice. For important decisions, please consult a qualified attorney.</em></div>
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <input class="chat-input" id="chatIn" placeholder="Ask any legal question in any language…" onkeydown="if(event.key==='Enter')chat()">
+        <button class="chat-send" onclick="chat()">Send →</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="how-band" id="how">
+<div class="section">
+  <div class="section-eye" data-i18n="how_eye">Simple Process</div>
+  <h2 data-i18n="how_h2">How LexAI works</h2>
+  <p class="section-sub" data-i18n="how_sub">From upload to insight in under 10 seconds.</p>
+  <div class="steps-grid">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-h" data-i18n="step1_h">Upload or Paste</div>
+      <div class="step-p" data-i18n="step1_p">Drag &amp; drop your contract file or paste the text directly. Any language, any format.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-h" data-i18n="step2_h">AI Reads Everything</div>
+      <div class="step-p" data-i18n="step2_p">Gemini AI reads every clause, cross-references legal norms, and identifies risks in seconds.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-h" data-i18n="step3_h">Get Your Report</div>
+      <div class="step-p" data-i18n="step3_p">Receive a structured report with risk levels, plain-language explanations, and action items.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div class="step-h" data-i18n="step4_h">Ask Follow-ups</div>
+      <div class="step-p" data-i18n="step4_p">Chat with the AI lawyer to clarify any clause or get deeper insight — in your language.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- FEATURES -->
+<div class="section" id="features">
+  <div class="section-eye" data-i18n="feat_eye">Why LexAI</div>
+  <h2 data-i18n="feat_h2">Built for everyone, everywhere</h2>
+  <p class="section-sub" data-i18n="feat_sub">Legal understanding shouldn't be a privilege. LexAI makes it accessible to anyone, anywhere.</p>
+  <div class="feat-grid">
+    <div class="feat">
+      <div class="feat-ico">🌍</div>
+      <div class="feat-h" data-i18n="f1_h">200+ Languages</div>
+      <div class="feat-p" data-i18n="f1_p">Upload contracts in any language — Chinese, Arabic, Spanish, French, Hindi, Swahili. Get your report back in your native tongue instantly.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-ico">🔍</div>
+      <div class="feat-h" data-i18n="f2_h">Deep Risk Detection</div>
+      <div class="feat-p" data-i18n="f2_p">Automatically flags unfair clauses, excessive liability, missing protections, and unusual terms that lawyers charge hundreds of dollars to find.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-ico">💬</div>
+      <div class="feat-h" data-i18n="f3_h">AI Lawyer Chat</div>
+      <div class="feat-p" data-i18n="f3_p">Ask follow-up questions in plain language. Get instant answers, 24/7 — no appointments, no hourly billing, no waiting.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-ico">🎯</div>
+      <div class="feat-h" data-i18n="f4_h">Role-Aware Analysis</div>
+      <div class="feat-p" data-i18n="f4_p">Tell us if you're the employee, tenant, buyer, or seller. The AI tailors its analysis specifically to protect your interests in that role.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-ico">🔒</div>
+      <div class="feat-h" data-i18n="f5_h">Private by Design</div>
+      <div class="feat-p" data-i18n="f5_p">Your contract text goes directly to Google's AI and is never stored by LexAI. Your sensitive documents stay private.</div>
+    </div>
+    <div class="feat">
+      <div class="feat-ico">⚡</div>
+      <div class="feat-h" data-i18n="f6_h">Instant Results</div>
+      <div class="feat-p" data-i18n="f6_p">Full contract analysis in under 5 seconds. Powered by Google Gemini — one of the world's most capable AI models.</div>
+    </div>
+  </div>
+</div>
+
+<!-- TESTIMONIALS -->
+<div style="background:var(--cream);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+<div class="section">
+  <div class="section-eye" data-i18n="testi_eye">What Users Say</div>
+  <h2 data-i18n="testi_h2">Trusted by people worldwide</h2>
+  <p class="section-sub" data-i18n="testi_sub">From students signing their first lease to freelancers reviewing client agreements.</p>
+  <div class="testi-grid">
+    <div class="testi">
+      <div class="testi-stars">★★★★★</div>
+      <div class="testi-text" data-i18n="testi1_text">"I was about to sign a freelance contract with a clause that gave the client ownership of all my future work. LexAI caught it in seconds."</div>
+      <div class="testi-author"><strong>Yuki T.</strong><span data-i18n="testi1_role">Graphic designer, Tokyo</span></div>
+    </div>
+    <div class="testi">
+      <div class="testi-stars">★★★★★</div>
+      <div class="testi-text" data-i18n="testi2_text">"My landlord gave me a rental contract in legal English. I don't speak English well. LexAI translated and explained everything clearly in Chinese."</div>
+      <div class="testi-author"><strong>Wei L.</strong><span data-i18n="testi2_role">International student, London</span></div>
+    </div>
+    <div class="testi">
+      <div class="testi-stars">★★★★★</div>
+      <div class="testi-text" data-i18n="testi3_text">"The non-compete clause in my job offer was for 5 years. LexAI told me that was unusually aggressive. I negotiated it down to 1 year."</div>
+      <div class="testi-author"><strong>Amara O.</strong><span data-i18n="testi3_role">Software engineer, Lagos</span></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- PRICING -->
+<div class="section" id="pricing">
+  <div class="section-eye" data-i18n="price_eye">Simple Pricing</div>
+  <h2 data-i18n="price_h2">Start free, upgrade when ready</h2>
+  <p class="section-sub" data-i18n="price_sub">No credit card required to get started.</p>
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="price-plan" data-i18n="plan1_name">Free</div>
+      <div class="price-amt">$0</div>
+      <div class="price-per" data-i18n="plan1_per">forever</div>
+      <ul class="price-feats">
+        <li data-i18n="plan1_f1">3 contract analyses/month</li>
+        <li data-i18n="plan1_f2">AI Lawyer chat</li>
+        <li data-i18n="plan1_f3">Basic risk detection</li>
+        <li data-i18n="plan1_f4">10 languages</li>
+        <li data-i18n="plan1_f5">TXT &amp; paste input</li>
+      </ul>
+      <button class="btn-price btn-price-outline" onclick="scrollTo('tool')" data-i18n="plan1_btn">Get Started Free</button>
+    </div>
+    <div class="price-card featured">
+      <div class="price-plan" data-i18n="plan2_name">Pro</div>
+      <div class="price-amt">$9.9</div>
+      <div class="price-per" data-i18n="plan2_per">per month</div>
+      <ul class="price-feats">
+        <li data-i18n="plan2_f1">Unlimited analyses</li>
+        <li data-i18n="plan2_f2">Priority AI responses</li>
+        <li data-i18n="plan2_f3">Advanced risk scoring</li>
+        <li data-i18n="plan2_f4">200+ languages</li>
+        <li data-i18n="plan2_f5">PDF &amp; DOCX upload</li>
+        <li data-i18n="plan2_f6">Clause-by-clause breakdown</li>
+        <li data-i18n="plan2_f7">Export PDF report</li>
+      </ul>
+      <button class="btn-price btn-price-solid" data-i18n="plan2_btn">Start Pro — $9.9/mo</button>
+    </div>
+    <div class="price-card">
+      <div class="price-plan" data-i18n="plan3_name">Business</div>
+      <div class="price-amt">$49</div>
+      <div class="price-per" data-i18n="plan3_per">per month</div>
+      <ul class="price-feats">
+        <li data-i18n="plan3_f1">Everything in Pro</li>
+        <li data-i18n="plan3_f2">5 team members</li>
+        <li data-i18n="plan3_f3">API access</li>
+        <li data-i18n="plan3_f4">Custom branding</li>
+        <li data-i18n="plan3_f5">Contract templates</li>
+        <li data-i18n="plan3_f6">Priority support</li>
+      </ul>
+      <button class="btn-price btn-price-outline" data-i18n="plan3_btn">Contact Sales</button>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div style="background:var(--cream);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+<div class="section" id="faq">
+  <div class="section-eye" data-i18n="faq_eye">Questions</div>
+  <h2 data-i18n="faq_h2">Frequently asked</h2>
+  <p class="section-sub" data-i18n="faq_sub">Everything you need to know about LexAI.</p>
+  <div class="faq-list">
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq1_q">Is LexAI a real law firm?</span> <span class="faq-arrow">▼</span></div>
+      <div class="faq-a" data-i18n="faq1_a">No. LexAI is an AI-powered tool for understanding contracts. We are not a law firm and do not provide licensed legal advice. For important legal decisions — lawsuits, major contracts, regulatory matters — always consult a qualified attorney.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq2_q">Is my contract data private?</span> <span class="faq-arrow">▼</span></div>
+      <div class="faq-a" data-i18n="faq2_a">Yes. Your contract text is sent directly to Google's Gemini API for analysis and is never stored on LexAI's servers. Google's API data usage policies apply. We strongly recommend removing personally identifiable information before uploading sensitive documents.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq3_q">Which languages are supported?</span> <span class="faq-arrow">▼</span></div>
+      <div class="faq-a" data-i18n="faq3_a">LexAI can analyze contracts in over 200 languages, including Chinese, Arabic, Spanish, French, Japanese, Korean, German, Hindi, Portuguese, Russian, and many more. You can also request your report in any of these languages.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq4_q">How accurate is the AI analysis?</span> <span class="faq-arrow">▼</span></div>
+      <div class="faq-a" data-i18n="faq4_a">LexAI uses Google Gemini, one of the world's most advanced language models. It is highly effective at identifying common risk patterns, unusual clauses, and missing protections. However, no AI is perfect — results should be a starting point, not a final legal opinion.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq5_q">Do I need a Gemini API key?</span> <span class="faq-arrow">▼</span></div>
+      <div class="faq-a" data-i18n="faq5_a">Yes. You need a free Google Gemini API key from aistudio.google.com — it's free and takes less than 2 minutes. Google provides a generous free tier sufficient for regular personal use.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)"><span data-i18n="faq6_q">What types of contracts can LexAI analyze?</span> <span class="faq-arrow">▼</span></div>
+      <div class="faq-a" data-i18n="faq6_a">LexAI can analyze virtually any written contract: employment agreements, rental leases, NDAs, service agreements, purchase contracts, franchise agreements, loan agreements, partnership agreements, IP licensing deals, and more.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- DISCLAIMER SECTION -->
+<div class="disc-section">
+  <div class="disc-inner">
+    <span class="disc-title">⚖️ Legal Disclaimer</span>
+    <div class="disc-box">
+      <b>LexAI is an AI-powered informational tool, not a law firm.</b> The analysis and information provided by LexAI is for general informational and educational purposes only, and does not constitute legal advice, legal opinions, or the practice of law. No attorney-client relationship is formed through use of this service. LexAI does not guarantee the accuracy, completeness, or applicability of any analysis to your specific legal situation. Laws vary significantly by jurisdiction and circumstance. <b>Always consult a qualified, licensed attorney</b> before making important legal decisions, signing significant contracts, or taking legal action.
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand">
+      <div class="logo">⚖️ Lex<em>AI</em></div>
+      <p>AI-powered legal intelligence for everyone, in every language, anywhere in the world.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Product</h4>
+      <ul>
+        <li><a href="#tool">Contract Analysis</a></li>
+        <li><a href="#tool">AI Lawyer Chat</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#features">Features</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <ul>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="#how">How It Works</a></li>
+        <li><a href="#">Contact</a></li>
+        <li><a href="#">API Docs</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Legal</h4>
+      <ul>
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Terms of Service</a></li>
+        <li><a href="#">Disclaimer</a></li>
+        <li><a href="#">Cookie Policy</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2024 LexAI · AI Legal Assistant · Not a substitute for professional legal advice</span>
+    <span>Powered by <a href="https://aistudio.google.com" target="_blank">Google Gemini</a></span>
+  </div>
+</footer>
+
+<script>
+// ─── HELPERS ───
+function scrollTo(id){ document.getElementById(id).scrollIntoView({behavior:'smooth'}); }
+
+// Fix setType to match new option values
+function setType(v){
+  const map = {
+    'employment':'Employment Contract',
+    'rental':'Rental / Lease Agreement',
+    'nda':'NDA / Confidentiality',
+    'service':'Service Agreement',
+    'purchase':'Purchase Agreement',
+    'partnership':'Partnership / JV',
+    'loan':'Loan / Finance Agreement',
+    'general':'General Contract'
+  };
+  document.getElementById('cType').value = map[v] || v;
+}
+
+// ─── MOBILE MENU ───
+function closeMobile(){ document.getElementById('mobileMenu').classList.remove('open'); }
+
+// ─── ANIMATED COUNTERS ───
+function animateCounters(){
+  document.querySelectorAll('.stat-n').forEach(el=>{
+    const text = el.textContent;
+    const num  = parseInt(text.replace(/\D/g,''));
+    if(!num || el.dataset.animated) return;
+    el.dataset.animated = '1';
+    let start = 0;
+    const end = num;
+    const prefix = text.match(/^[^\d]*/)[0];
+    const suffix = text.match(/[^\d]*$/)[0];
+    const dur = 1200;
+    const step = dur / end;
+    const timer = setInterval(()=>{
+      start += Math.ceil(end/60);
+      if(start >= end){ el.textContent = prefix+end+suffix; clearInterval(timer); }
+      else el.textContent = prefix+start+suffix;
+    }, step);
+  });
+}
+// trigger when stats bar enters view
+const statsObs = new IntersectionObserver(entries=>{
+  if(entries[0].isIntersecting){ animateCounters(); statsObs.disconnect(); }
+},{threshold:.3});
+const statsBar = document.querySelector('.stats-bar');
+if(statsBar) statsObs.observe(statsBar);
+
+// ─── SAMPLE CONTRACT ───
+function loadSample(){
+  document.getElementById('contractTxt').value = `EMPLOYMENT AGREEMENT
+
+This Employment Agreement ("Agreement") is entered into as of January 1, 2025, between TechCorp Inc. ("Company") and John Doe ("Employee").
+
+1. POSITION: Employee shall serve as Senior Software Engineer.
+
+2. COMPENSATION: Employee shall receive a base salary of $120,000 per year. Overtime shall be at the Company's discretion with no additional compensation.
+
+3. NON-COMPETE: Employee agrees not to work for any competitor, directly or indirectly, for a period of 5 years following termination, anywhere in the world.
+
+4. INTELLECTUAL PROPERTY: All work product, inventions, and ideas conceived by Employee during or outside working hours shall be the exclusive property of the Company, including any personal projects.
+
+5. INDEMNIFICATION: Employee shall indemnify and hold harmless the Company from any and all claims, damages, or liabilities without limitation.
+
+6. GOVERNING LAW: This Agreement shall be governed by the laws of Delaware, USA. Any disputes shall be resolved by binding arbitration in San Francisco at the Company's sole discretion.
+
+7. TERMINATION: Company may terminate this Agreement at any time with or without cause, with 7 days notice. Employee must provide 90 days notice.
+
+8. DATA PRIVACY: Employee consents to the collection and processing of all personal data by the Company for any purpose, with no restrictions on third-party sharing.
+
+9. CONFIDENTIALITY: Employee shall not disclose any Company information for a period of 10 years after termination.
+
+10. ENTIRE AGREEMENT: This Agreement supersedes all prior agreements.`;
+  document.getElementById('cType').value = 'Employment Contract';
+  document.getElementById('cRole').value = 'Employee / Worker';
+  document.getElementById('cJurisdiction').value = 'United States';
+  document.querySelector('.sample-banner').innerHTML = '✅ Sample loaded! Hit <strong>Analyze Contract</strong> to see it in action.';
+}
+
+// ─── COPY REPORT ───
+function copyReport(){
+  const sections = ['mod1Body','mod2Body','mod3Body','mod4Body'];
+  let text = '=== LexAI CONTRACT ANALYSIS REPORT ===\n\n';
+  sections.forEach((id,i)=>{
+    const el = document.getElementById(id);
+    if(el) text += `--- MODULE ${i+1} ---\n${el.innerText}\n\n`;
+  });
+  text += '\n⚖️ Disclaimer: LexAI provides AI-powered legal analysis for informational purposes only.';
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent = '📋 Copy Report'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ─── PROGRESS STEPPER ───
+let progTimer;
+function startProgress(jurisdiction){
+  const steps = ['ps1','ps2','ps3','ps4','ps5'];
+  const labels = [
+    'Reading contract text…',
+    `Applying ${jurisdiction} jurisdiction rules…`,
+    'Scanning for risk clauses…',
+    'Generating redline suggestions…',
+    'Finalizing report…'
+  ];
+  steps.forEach((id,i)=>{
+    const el = document.getElementById(id);
+    if(el){ el.className='prog-step'; el.querySelector('.prog-dot').textContent=i+1; el.childNodes[1].textContent=' '+labels[i]; }
+  });
+  let i=0;
+  progTimer = setInterval(()=>{
+    if(i>0) document.getElementById(steps[i-1]).className='prog-step done';
+    if(i<steps.length){ document.getElementById(steps[i]).className='prog-step active'; i++; }
+    else clearInterval(progTimer);
+  }, 900);
+}
+function stopProgress(){
+  clearInterval(progTimer);
+  ['ps1','ps2','ps3','ps4','ps5'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.className='prog-step done';
+  });
+}
+
+// ─── I18N SYSTEM ───
+const LANGS = {
+  en: {
+    flag:'🇺🇸', label:'EN',
+    nav_cta:'Start Free →',
+    disc_bar_bold:'Legal Notice:',
+    disc_bar_text:"LexAI provides AI-generated analysis for informational purposes only — not professional legal advice. Consult a licensed attorney for important legal decisions.",
+    hero_eyebrow:'✦ AI-Powered Legal Intelligence',
+    hero_h1:'Understand any contract<br>in <span class="accent">any language</span>',
+    hero_p:"Upload your contract and get instant AI analysis of risks, hidden clauses, and obligations — in your own language. Then chat with our AI lawyer 24/7 for free.",
+    hero_btn1:'Analyze a Contract →', hero_btn2:'Chat with AI Lawyer',
+    trust1:'200+ languages', trust2:'Free to start', trust3:'No account needed', trust4:'Private & secure',
+    stat1:'Languages', stat2:'Analysis Time', stat3:'AI Lawyer', stat4:'Contract Types', stat5:'To Get Started',
+    types_eye:'What we analyze', types_h2:'Every contract type covered', types_sub:'From employment to real estate — LexAI understands the nuances of every major contract category.',
+    tool_eye:'Your AI Legal Assistant', tool_h2:'Analyze & Consult', tool_sub:'Paste your contract text and get a full risk report, or chat with the AI lawyer in real time.',
+    api_label:'Gemini API Key', api_link:'Get free key →',
+    tab_analyze:'📄 Contract Analysis', tab_lawyer:'💬 AI Lawyer Chat',
+    upload_h:'Drop your contract here or click to browse', upload_s:'Supports TXT, PDF, DOCX · Any language accepted',
+    paste_label:'Or paste contract text directly', paste_ph:'Paste the full text of your contract here. Any language is accepted…',
+    ctype_label:'Contract Type', role_label:'Your Role in This Contract', outlang_label:'Report Language',
+    ct_general:'General Contract', ct_employment:'Employment Contract', ct_rental:'Rental / Lease Agreement',
+    ct_nda:'NDA / Confidentiality', ct_service:'Service Agreement', ct_purchase:'Purchase Agreement',
+    ct_partnership:'Partnership / JV', ct_loan:'Loan / Finance Agreement', ct_franchise:'Franchise Agreement', ct_ip:'IP / License Agreement',
+    role_unknown:'Not sure / General', role_employee:'Employee / Worker', role_employer:'Employer / Company',
+    role_tenant:'Tenant / Renter', role_landlord:'Landlord / Owner', role_buyer:'Buyer / Client',
+    role_seller:'Seller / Vendor', role_freelancer:'Freelancer / Contractor',
+    privacy_note:"🔒 Your contract text is sent directly to Google's AI and is not stored by LexAI.",
+    analyze_btn:'Analyze Contract →',
+    how_eye:'Simple Process', how_h2:'How LexAI works', how_sub:'From upload to insight in under 10 seconds.',
+    step1_h:'Upload or Paste', step1_p:'Drag & drop your contract file or paste the text directly. Any language, any format.',
+    step2_h:'AI Reads Everything', step2_p:'Gemini AI reads every clause, cross-references legal norms, and identifies risks in seconds.',
+    step3_h:'Get Your Report', step3_p:'Receive a structured report with risk levels, plain-language explanations, and action items.',
+    step4_h:'Ask Follow-ups', step4_p:'Chat with the AI lawyer to clarify any clause or get deeper insight — in your language.',
+    feat_eye:'Why LexAI', feat_h2:'Built for everyone, everywhere', feat_sub:"Legal understanding shouldn't be a privilege. LexAI makes it accessible to anyone, anywhere.",
+    f1_h:'200+ Languages', f1_p:'Upload contracts in any language — Chinese, Arabic, Spanish, French, Hindi, Swahili. Get your report back in your native tongue instantly.',
+    f2_h:'Deep Risk Detection', f2_p:'Automatically flags unfair clauses, excessive liability, missing protections, and unusual terms that lawyers charge hundreds of dollars to find.',
+    f3_h:'AI Lawyer Chat', f3_p:'Ask follow-up questions in plain language. Get instant answers, 24/7 — no appointments, no hourly billing, no waiting.',
+    f4_h:'Role-Aware Analysis', f4_p:"Tell us if you're the employee, tenant, buyer, or seller. The AI tailors its analysis specifically to protect your interests in that role.",
+    f5_h:'Private by Design', f5_p:"Your contract text goes directly to Google's AI and is never stored by LexAI. Your sensitive documents stay private.",
+    f6_h:'Instant Results', f6_p:"Full contract analysis in under 5 seconds. Powered by Google Gemini — one of the world's most capable AI models.",
+    price_eye:'Simple Pricing', price_h2:'Start free, upgrade when ready', price_sub:'No credit card required to get started.',
+    faq_eye:'Questions', faq_h2:'Frequently asked', faq_sub:'Everything you need to know about LexAI.',
+  },
+  zh: {
+    flag:'🇨🇳', label:'中文',
+    nav_cta:'免费开始 →',
+    disc_bar_bold:'法律声明：',
+    disc_bar_text:'LexAI 提供的 AI 生成分析仅供参考，不构成专业法律建议。如需重要法律决策，请咨询持牌律师。',
+    hero_eyebrow:'✦ AI 驱动的法律智能',
+    hero_h1:'用<span class="accent">任何语言</span><br>读懂任何合同',
+    hero_p:'上传您的合同，即时获取 AI 风险分析、隐藏条款解读和义务说明——以您的母语呈现。随时与 AI 律师免费对话。',
+    hero_btn1:'分析合同 →', hero_btn2:'咨询 AI 律师',
+    trust1:'200+ 种语言', trust2:'免费开始', trust3:'无需注册', trust4:'隐私安全',
+    stat1:'支持语言', stat2:'分析时间', stat3:'AI 律师', stat4:'合同类型', stat5:'免费开始',
+    types_eye:'我们分析的范围', types_h2:'覆盖所有合同类型', types_sub:'从劳动合同到房产合同——LexAI 深入理解每种主要合同的细节。',
+    tool_eye:'您的 AI 法律助手', tool_h2:'分析与咨询', tool_sub:'粘贴合同文本，获取完整风险报告，或实时与 AI 律师对话。',
+    api_label:'Gemini API 密钥', api_link:'免费获取密钥 →',
+    tab_analyze:'📄 合同分析', tab_lawyer:'💬 AI 律师对话',
+    upload_h:'拖拽合同文件到此处，或点击上传', upload_s:'支持 TXT、PDF、DOCX · 接受任何语言',
+    paste_label:'或直接粘贴合同文本', paste_ph:'在此粘贴合同全文。支持任何语言——中文、英文、阿拉伯文…',
+    ctype_label:'合同类型', role_label:'您在合同中的角色', outlang_label:'报告语言',
+    ct_general:'通用合同', ct_employment:'劳动合同', ct_rental:'租赁合同',
+    ct_nda:'保密协议', ct_service:'服务协议', ct_purchase:'采购合同',
+    ct_partnership:'合伙/合资协议', ct_loan:'贷款/融资协议', ct_franchise:'特许经营协议', ct_ip:'知识产权/许可协议',
+    role_unknown:'不确定/通用', role_employee:'员工/劳动者', role_employer:'雇主/公司',
+    role_tenant:'租户/承租人', role_landlord:'房东/业主', role_buyer:'买方/客户',
+    role_seller:'卖方/供应商', role_freelancer:'自由职业者/承包商',
+    privacy_note:'🔒 您的合同文本将直接发送至 Google AI，LexAI 不会存储您的任何文件。',
+    analyze_btn:'分析合同 →',
+    how_eye:'简单流程', how_h2:'LexAI 如何工作', how_sub:'从上传到洞察，不到 10 秒。',
+    step1_h:'上传或粘贴', step1_p:'拖拽合同文件或直接粘贴文本。支持任何语言和格式。',
+    step2_h:'AI 全文阅读', step2_p:'Gemini AI 读取每一条款，对照法律规范，在数秒内识别风险。',
+    step3_h:'获取报告', step3_p:'收到结构化报告，包含风险等级、通俗解释和行动建议。',
+    step4_h:'继续追问', step4_p:'与 AI 律师对话，用您的语言深入了解任何条款。',
+    feat_eye:'为什么选择 LexAI', feat_h2:'为全球每一个人而生', feat_sub:'法律理解不应该是特权。LexAI 让任何人、任何地方都能轻松读懂合同。',
+    f1_h:'200+ 种语言', f1_p:'上传任何语言的合同——中文、阿拉伯文、西班牙文、法文、印地文、斯瓦希里文。立即以您的母语获取报告。',
+    f2_h:'深度风险检测', f2_p:'自动标记不公平条款、过度责任、缺失保护和异常条款——律师收费数百美元才能找到的问题。',
+    f3_h:'AI 律师对话', f3_p:'用通俗语言提问，随时获得即时答案——无需预约，无需计时收费，无需等待。',
+    f4_h:'角色感知分析', f4_p:'告诉我们您是员工、租户、买方还是卖方，AI 将专门针对您的角色定制分析，保护您的利益。',
+    f5_h:'隐私优先设计', f5_p:'您的合同文本直接发送至 Google AI，LexAI 从不存储您的敏感文件。',
+    f6_h:'即时结果', f6_p:'5 秒内完成完整合同分析。由 Google Gemini 驱动——全球最强大的 AI 模型之一。',
+    price_eye:'简单定价', price_h2:'免费开始，随时升级', price_sub:'无需信用卡即可开始使用。',
+    faq_eye:'常见问题', faq_h2:'常见问题解答', faq_sub:'关于 LexAI 您需要了解的一切。',
+  },
+  zh_tw: {
+    flag:'🇹🇼', label:'繁中',
+    nav_cta:'免費開始 →',
+    disc_bar_bold:'法律聲明：',
+    disc_bar_text:'LexAI 提供的 AI 生成分析僅供參考，不構成專業法律建議。如需重要法律決策，請諮詢持牌律師。',
+    hero_eyebrow:'✦ AI 驅動的法律智能',
+    hero_h1:'用<span class="accent">任何語言</span><br>讀懂任何合約',
+    hero_p:'上傳您的合約，即時獲取 AI 風險分析、隱藏條款解讀和義務說明——以您的母語呈現。隨時與 AI 律師免費對話。',
+    hero_btn1:'分析合約 →', hero_btn2:'諮詢 AI 律師',
+    trust1:'200+ 種語言', trust2:'免費開始', trust3:'無需註冊', trust4:'隱私安全',
+    stat1:'支援語言', stat2:'分析時間', stat3:'AI 律師', stat4:'合約類型', stat5:'免費開始',
+    types_eye:'我們分析的範圍', types_h2:'涵蓋所有合約類型', types_sub:'從勞動合約到房產合約——LexAI 深入理解每種主要合約的細節。',
+    tool_eye:'您的 AI 法律助手', tool_h2:'分析與諮詢', tool_sub:'貼上合約文字，獲取完整風險報告，或即時與 AI 律師對話。',
+    api_label:'Gemini API 金鑰', api_link:'免費取得金鑰 →',
+    tab_analyze:'📄 合約分析', tab_lawyer:'💬 AI 律師對話',
+    upload_h:'拖曳合約檔案至此，或點擊上傳', upload_s:'支援 TXT、PDF、DOCX · 接受任何語言',
+    paste_label:'或直接貼上合約文字', paste_ph:'在此貼上合約全文。支援任何語言——中文、英文、阿拉伯文…',
+    ctype_label:'合約類型', role_label:'您在合約中的角色', outlang_label:'報告語言',
+    ct_general:'一般合約', ct_employment:'勞動合約', ct_rental:'租賃合約',
+    ct_nda:'保密協議', ct_service:'服務協議', ct_purchase:'採購合約',
+    ct_partnership:'合夥/合資協議', ct_loan:'貸款/融資協議', ct_franchise:'特許經營協議', ct_ip:'智慧財產/授權協議',
+    role_unknown:'不確定/一般', role_employee:'員工/勞動者', role_employer:'雇主/公司',
+    role_tenant:'租戶/承租人', role_landlord:'房東/業主', role_buyer:'買方/客戶',
+    role_seller:'賣方/供應商', role_freelancer:'自由工作者/承包商',
+    privacy_note:'🔒 您的合約文字將直接傳送至 Google AI，LexAI 不會儲存您的任何檔案。',
+    analyze_btn:'分析合約 →',
+    how_eye:'簡單流程', how_h2:'LexAI 如何運作', how_sub:'從上傳到洞察，不到 10 秒。',
+    step1_h:'上傳或貼上', step1_p:'拖曳合約檔案或直接貼上文字。支援任何語言和格式。',
+    step2_h:'AI 全文閱讀', step2_p:'Gemini AI 讀取每一條款，對照法律規範，在數秒內識別風險。',
+    step3_h:'取得報告', step3_p:'收到結構化報告，包含風險等級、通俗說明和行動建議。',
+    step4_h:'繼續追問', step4_p:'與 AI 律師對話，用您的語言深入了解任何條款。',
+    feat_eye:'為什麼選擇 LexAI', feat_h2:'為全球每一個人而生', feat_sub:'法律理解不應該是特權。LexAI 讓任何人、任何地方都能輕鬆讀懂合約。',
+    f1_h:'200+ 種語言', f1_p:'上傳任何語言的合約——中文、阿拉伯文、西班牙文、法文、印地文。立即以您的母語取得報告。',
+    f2_h:'深度風險檢測', f2_p:'自動標記不公平條款、過度責任、缺失保護和異常條款。',
+    f3_h:'AI 律師對話', f3_p:'用通俗語言提問，隨時獲得即時答案——無需預約，無需計時收費。',
+    f4_h:'角色感知分析', f4_p:'告訴我們您是員工、租戶、買方還是賣方，AI 將專門針對您的角色定制分析。',
+    f5_h:'隱私優先設計', f5_p:'您的合約文字直接傳送至 Google AI，LexAI 從不儲存您的敏感檔案。',
+    f6_h:'即時結果', f6_p:'5 秒內完成完整合約分析。由 Google Gemini 驅動。',
+    price_eye:'簡單定價', price_h2:'免費開始，隨時升級', price_sub:'無需信用卡即可開始使用。',
+    faq_eye:'常見問題', faq_h2:'常見問題解答', faq_sub:'關於 LexAI 您需要了解的一切。',
+  },
+  es: {
+    flag:'🇪🇸', label:'ES',
+    nav_cta:'Empezar gratis →',
+    disc_bar_bold:'Aviso Legal:',
+    disc_bar_text:'LexAI ofrece análisis generado por IA solo con fines informativos, no como asesoramiento legal profesional. Consulte a un abogado para decisiones legales importantes.',
+    hero_eyebrow:'✦ Inteligencia Legal con IA',
+    hero_h1:'Entiende cualquier contrato<br>en <span class="accent">cualquier idioma</span>',
+    hero_p:'Sube tu contrato y obtén análisis instantáneo de riesgos, cláusulas ocultas y obligaciones en tu propio idioma. Chatea con nuestro abogado IA 24/7 gratis.',
+    hero_btn1:'Analizar contrato →', hero_btn2:'Hablar con abogado IA',
+    trust1:'200+ idiomas', trust2:'Gratis para empezar', trust3:'Sin cuenta', trust4:'Privado y seguro',
+    stat1:'Idiomas', stat2:'Tiempo de análisis', stat3:'Abogado IA', stat4:'Tipos de contrato', stat5:'Para comenzar',
+    types_eye:'Qué analizamos', types_h2:'Todos los tipos de contratos', types_sub:'Desde empleo hasta inmobiliaria — LexAI entiende los matices de cada categoría.',
+    tool_eye:'Tu asistente legal IA', tool_h2:'Analizar y consultar', tool_sub:'Pega el texto del contrato y obtén un informe completo de riesgos, o chatea con el abogado IA.',
+    api_label:'Clave API de Gemini', api_link:'Obtener clave gratis →',
+    tab_analyze:'📄 Análisis de Contrato', tab_lawyer:'💬 Chat Abogado IA',
+    upload_h:'Suelta tu contrato aquí o haz clic para navegar', upload_s:'Soporta TXT, PDF, DOCX · Cualquier idioma',
+    paste_label:'O pega el texto del contrato', paste_ph:'Pega aquí el texto completo del contrato. Se acepta cualquier idioma…',
+    ctype_label:'Tipo de contrato', role_label:'Tu rol en este contrato', outlang_label:'Idioma del informe',
+    ct_general:'Contrato general', ct_employment:'Contrato de trabajo', ct_rental:'Arrendamiento',
+    ct_nda:'NDA / Confidencialidad', ct_service:'Acuerdo de servicios', ct_purchase:'Contrato de compra',
+    ct_partnership:'Sociedad / JV', ct_loan:'Préstamo / Financiero', ct_franchise:'Franquicia', ct_ip:'Propiedad intelectual',
+    role_unknown:'No sé / General', role_employee:'Empleado', role_employer:'Empleador',
+    role_tenant:'Inquilino', role_landlord:'Propietario', role_buyer:'Comprador',
+    role_seller:'Vendedor', role_freelancer:'Freelancer / Contratista',
+    privacy_note:'🔒 Tu texto se envía directamente a la IA de Google. LexAI no almacena tus documentos.',
+    analyze_btn:'Analizar contrato →',
+    how_eye:'Proceso simple', how_h2:'Cómo funciona LexAI', how_sub:'Del archivo al informe en menos de 10 segundos.',
+    step1_h:'Sube o pega', step1_p:'Arrastra tu contrato o pega el texto. Cualquier idioma y formato.',
+    step2_h:'IA lee todo', step2_p:'Gemini IA lee cada cláusula e identifica riesgos en segundos.',
+    step3_h:'Recibe tu informe', step3_p:'Informe estructurado con niveles de riesgo y acciones recomendadas.',
+    step4_h:'Haz preguntas', step4_p:'Chatea con el abogado IA para aclarar cualquier cláusula en tu idioma.',
+    feat_eye:'Por qué LexAI', feat_h2:'Para todos, en todas partes', feat_sub:'Entender un contrato no debería ser un privilegio.',
+    f1_h:'200+ Idiomas', f1_p:'Sube contratos en cualquier idioma. Obtén el informe en tu lengua nativa.',
+    f2_h:'Detección de riesgos', f2_p:'Marca automáticamente cláusulas injustas, responsabilidades excesivas y términos inusuales.',
+    f3_h:'Chat Abogado IA', f3_p:'Respuestas instantáneas 24/7 sin citas ni cobro por hora.',
+    f4_h:'Análisis por rol', f4_p:'Indica si eres empleado, inquilino o comprador y la IA adapta el análisis a tu situación.',
+    f5_h:'Privacidad total', f5_p:'Tu texto va directamente a la IA de Google. LexAI nunca almacena tus documentos.',
+    f6_h:'Resultados instantáneos', f6_p:'Análisis completo en menos de 5 segundos. Impulsado por Google Gemini.',
+    price_eye:'Precios simples', price_h2:'Empieza gratis, mejora cuando quieras', price_sub:'Sin tarjeta de crédito para empezar.',
+    faq_eye:'Preguntas', faq_h2:'Preguntas frecuentes', faq_sub:'Todo lo que necesitas saber sobre LexAI.',
+  },
+  fr: {
+    flag:'🇫🇷', label:'FR',
+    nav_cta:'Commencer gratuitement →',
+    disc_bar_bold:'Avis juridique :',
+    disc_bar_text:"LexAI fournit une analyse générée par IA à titre informatif uniquement — pas de conseil juridique professionnel. Consultez un avocat pour les décisions importantes.",
+    hero_eyebrow:'✦ Intelligence Juridique par IA',
+    hero_h1:'Comprenez tout contrat<br>dans <span class="accent">toute langue</span>',
+    hero_p:"Téléchargez votre contrat et obtenez une analyse instantanée des risques, clauses cachées et obligations dans votre langue. Chattez avec notre avocat IA 24h/24.",
+    hero_btn1:'Analyser un contrat →', hero_btn2:"Parler à l'avocat IA",
+    trust1:'200+ langues', trust2:'Gratuit pour commencer', trust3:'Sans inscription', trust4:'Privé et sécurisé',
+    stat1:'Langues', stat2:"Temps d'analyse", stat3:'Avocat IA', stat4:'Types de contrat', stat5:'Pour commencer',
+    types_eye:'Ce que nous analysons', types_h2:'Tous les types de contrats', types_sub:"De l'emploi à l'immobilier — LexAI comprend les nuances de chaque contrat.",
+    tool_eye:'Votre assistant juridique IA', tool_h2:'Analyser et consulter', tool_sub:'Collez le texte de votre contrat pour un rapport complet, ou chattez avec notre avocat IA.',
+    api_label:'Clé API Gemini', api_link:'Obtenir la clé gratuitement →',
+    tab_analyze:'📄 Analyse de Contrat', tab_lawyer:'💬 Chat Avocat IA',
+    upload_h:'Déposez votre contrat ici ou cliquez pour parcourir', upload_s:'TXT, PDF, DOCX · Toute langue acceptée',
+    paste_label:'Ou collez le texte du contrat', paste_ph:'Collez ici le texte complet de votre contrat. Toute langue acceptée…',
+    ctype_label:'Type de contrat', role_label:'Votre rôle dans ce contrat', outlang_label:'Langue du rapport',
+    ct_general:'Contrat général', ct_employment:"Contrat de travail", ct_rental:'Bail / Location',
+    ct_nda:'NDA / Confidentialité', ct_service:'Contrat de service', ct_purchase:"Contrat d'achat",
+    ct_partnership:'Partenariat / JV', ct_loan:'Prêt / Finance', ct_franchise:'Franchise', ct_ip:'Propriété intellectuelle',
+    role_unknown:'Pas sûr / Général', role_employee:'Employé', role_employer:'Employeur',
+    role_tenant:'Locataire', role_landlord:'Propriétaire', role_buyer:'Acheteur',
+    role_seller:'Vendeur', role_freelancer:'Freelance / Prestataire',
+    privacy_note:"🔒 Votre texte est envoyé directement à l'IA de Google. LexAI ne stocke pas vos documents.",
+    analyze_btn:'Analyser le contrat →',
+    how_eye:'Processus simple', how_h2:'Comment fonctionne LexAI', how_sub:"Du fichier au rapport en moins de 10 secondes.",
+    step1_h:'Téléchargez ou collez', step1_p:'Glissez votre contrat ou collez le texte. Toute langue et format.',
+    step2_h:"L'IA lit tout", step2_p:'Gemini lit chaque clause et identifie les risques en quelques secondes.',
+    step3_h:'Recevez votre rapport', step3_p:'Rapport structuré avec niveaux de risque et recommandations.',
+    step4_h:'Posez des questions', step4_p:"Chattez avec l'avocat IA pour clarifier toute clause dans votre langue.",
+    feat_eye:'Pourquoi LexAI', feat_h2:'Pour tous, partout', feat_sub:"Comprendre un contrat ne devrait pas être un privilège.",
+    f1_h:'200+ Langues', f1_p:'Téléchargez des contrats dans toute langue. Obtenez le rapport dans votre langue.',
+    f2_h:'Détection des risques', f2_p:'Signale automatiquement les clauses injustes et les termes inhabituels.',
+    f3_h:'Chat Avocat IA', f3_p:'Réponses instantanées 24h/24 sans rendez-vous ni facturation horaire.',
+    f4_h:'Analyse par rôle', f4_p:"Précisez si vous êtes employé, locataire ou acheteur et l'IA adapte son analyse.",
+    f5_h:'Conçu pour la confidentialité', f5_p:"Votre texte va directement à l'IA de Google. LexAI ne stocke jamais vos documents.",
+    f6_h:'Résultats instantanés', f6_p:'Analyse complète en moins de 5 secondes. Propulsé par Google Gemini.',
+    price_eye:'Tarifs simples', price_h2:'Commencez gratuitement', price_sub:'Aucune carte de crédit requise.',
+    faq_eye:'Questions', faq_h2:'Questions fréquentes', faq_sub:'Tout ce que vous devez savoir sur LexAI.',
+  },
+  de: {
+    flag:'🇩🇪', label:'DE',
+    nav_cta:'Kostenlos starten →',
+    disc_bar_bold:'Rechtlicher Hinweis:',
+    disc_bar_text:'LexAI stellt KI-generierte Analysen nur zu Informationszwecken bereit — keine Rechtsberatung. Konsultieren Sie einen Anwalt für wichtige Entscheidungen.',
+    hero_eyebrow:'✦ KI-gestützte Rechtsintellilligenz',
+    hero_h1:'Verstehen Sie jeden Vertrag<br>in <span class="accent">jeder Sprache</span>',
+    hero_p:'Laden Sie Ihren Vertrag hoch und erhalten Sie sofortige KI-Analyse von Risiken, versteckten Klauseln und Pflichten in Ihrer Sprache.',
+    hero_btn1:'Vertrag analysieren →', hero_btn2:'Mit KI-Anwalt chatten',
+    trust1:'200+ Sprachen', trust2:'Kostenlos starten', trust3:'Kein Konto nötig', trust4:'Privat & sicher',
+    stat1:'Sprachen', stat2:'Analysezeit', stat3:'KI-Anwalt', stat4:'Vertragstypen', stat5:'Zum Starten',
+    types_eye:'Was wir analysieren', types_h2:'Alle Vertragstypen abgedeckt', types_sub:'Von Arbeitsverträgen bis Immobilien — LexAI versteht jede Vertragsart.',
+    tool_eye:'Ihr KI-Rechtsassistent', tool_h2:'Analysieren & Beraten', tool_sub:'Fügen Sie Ihren Vertragstext ein und erhalten Sie einen vollständigen Risikobericht.',
+    api_label:'Gemini API-Schlüssel', api_link:'Kostenlosen Schlüssel holen →',
+    tab_analyze:'📄 Vertragsanalyse', tab_lawyer:'💬 KI-Anwalt Chat',
+    upload_h:'Vertrag hier ablegen oder klicken', upload_s:'TXT, PDF, DOCX · Jede Sprache akzeptiert',
+    paste_label:'Oder Vertragstext einfügen', paste_ph:'Fügen Sie hier den vollständigen Vertragstext ein…',
+    ctype_label:'Vertragstyp', role_label:'Ihre Rolle im Vertrag', outlang_label:'Berichtssprache',
+    ct_general:'Allgemeiner Vertrag', ct_employment:'Arbeitsvertrag', ct_rental:'Mietvertrag',
+    ct_nda:'NDA / Vertraulichkeit', ct_service:'Dienstleistungsvertrag', ct_purchase:'Kaufvertrag',
+    ct_partnership:'Partnerschaft / JV', ct_loan:'Kredit / Finanzierung', ct_franchise:'Franchise', ct_ip:'IP / Lizenzvertrag',
+    role_unknown:'Unsicher / Allgemein', role_employee:'Arbeitnehmer', role_employer:'Arbeitgeber',
+    role_tenant:'Mieter', role_landlord:'Vermieter', role_buyer:'Käufer',
+    role_seller:'Verkäufer', role_freelancer:'Freelancer / Auftragnehmer',
+    privacy_note:'🔒 Ihr Text wird direkt an die KI von Google gesendet. LexAI speichert keine Dokumente.',
+    analyze_btn:'Vertrag analysieren →',
+    how_eye:'Einfacher Prozess', how_h2:'Wie LexAI funktioniert', how_sub:'Von der Datei zum Bericht in unter 10 Sekunden.',
+    step1_h:'Hochladen oder einfügen', step1_p:'Ziehen Sie Ihren Vertrag oder fügen Sie den Text ein.',
+    step2_h:'KI liest alles', step2_p:'Gemini KI liest jede Klausel und identifiziert Risiken in Sekunden.',
+    step3_h:'Bericht erhalten', step3_p:'Strukturierter Bericht mit Risikostufen und Empfehlungen.',
+    step4_h:'Fragen stellen', step4_p:'Chatten Sie mit dem KI-Anwalt in Ihrer Sprache.',
+    feat_eye:'Warum LexAI', feat_h2:'Für alle, überall', feat_sub:'Verträge verstehen sollte kein Privileg sein.',
+    f1_h:'200+ Sprachen', f1_p:'Laden Sie Verträge in jeder Sprache hoch. Erhalten Sie den Bericht in Ihrer Muttersprache.',
+    f2_h:'Tiefe Risikoerkennung', f2_p:'Markiert automatisch unfaire Klauseln und ungewöhnliche Bedingungen.',
+    f3_h:'KI-Anwalt Chat', f3_p:'Sofortige Antworten 24/7 ohne Termin oder Stundenabrechnung.',
+    f4_h:'Rollenbasierte Analyse', f4_p:'Geben Sie Ihre Rolle an — die KI passt die Analyse entsprechend an.',
+    f5_h:'Datenschutz by Design', f5_p:'Ihr Text geht direkt zur Google-KI. LexAI speichert Ihre Dokumente nie.',
+    f6_h:'Sofortige Ergebnisse', f6_p:'Vollständige Analyse in unter 5 Sekunden. Powered by Google Gemini.',
+    price_eye:'Einfache Preise', price_h2:'Kostenlos starten', price_sub:'Keine Kreditkarte erforderlich.',
+    faq_eye:'Fragen', faq_h2:'Häufig gestellte Fragen', faq_sub:'Alles, was Sie über LexAI wissen müssen.',
+  },
+  ja: {
+    flag:'🇯🇵', label:'日本語',
+    nav_cta:'無料で始める →',
+    disc_bar_bold:'法的免責事項：',
+    disc_bar_text:'LexAI が提供する AI 分析は情報提供のみを目的としており、法律上のアドバイスではありません。重要な法的判断には必ず資格のある弁護士にご相談ください。',
+    hero_eyebrow:'✦ AI 駆動の法律インテリジェンス',
+    hero_h1:'<span class="accent">あらゆる言語</span>で<br>あらゆる契約を理解する',
+    hero_p:'契約書をアップロードするだけで、リスク・隠れた条項・義務を即座に AI 分析。母国語でレポートを受け取れます。AI 弁護士に 24 時間無料で相談できます。',
+    hero_btn1:'契約書を分析する →', hero_btn2:'AI 弁護士に相談',
+    trust1:'200以上の言語', trust2:'無料で開始', trust3:'アカウント不要', trust4:'プライバシー保護',
+    stat1:'対応言語', stat2:'分析時間', stat3:'AI 弁護士', stat4:'契約種別', stat5:'無料開始',
+    types_eye:'分析対象', types_h2:'あらゆる契約種別に対応', types_sub:'雇用から不動産まで — LexAI はすべての主要契約の細部を理解します。',
+    tool_eye:'あなたの AI 法律アシスタント', tool_h2:'分析・相談', tool_sub:'契約書のテキストを貼り付けてリスクレポートを取得、またはリアルタイムで AI 弁護士に相談できます。',
+    api_label:'Gemini API キー', api_link:'無料キーを取得 →',
+    tab_analyze:'📄 契約書分析', tab_lawyer:'💬 AI 弁護士チャット',
+    upload_h:'契約書をここにドロップ、またはクリックして選択', upload_s:'TXT・PDF・DOCX 対応 · あらゆる言語可',
+    paste_label:'または契約書テキストを貼り付け', paste_ph:'契約書の全文をここに貼り付けてください。日本語・英語・アラビア語など、どの言語でも対応しています…',
+    ctype_label:'契約の種類', role_label:'契約における役割', outlang_label:'レポート言語',
+    ct_general:'一般契約', ct_employment:'雇用契約', ct_rental:'賃貸借契約',
+    ct_nda:'秘密保持契約（NDA）', ct_service:'業務委託契約', ct_purchase:'売買契約',
+    ct_partnership:'パートナーシップ/合弁', ct_loan:'金銭消費貸借契約', ct_franchise:'フランチャイズ契約', ct_ip:'知的財産/ライセンス契約',
+    role_unknown:'不明/一般', role_employee:'従業員/労働者', role_employer:'雇用主/会社',
+    role_tenant:'賃借人', role_landlord:'賃貸人/家主', role_buyer:'買主/クライアント',
+    role_seller:'売主/ベンダー', role_freelancer:'フリーランス/請負業者',
+    privacy_note:'🔒 契約書テキストは Google の AI に直接送信されます。LexAI はいかなるデータも保存しません。',
+    analyze_btn:'契約書を分析する →',
+    how_eye:'シンプルなプロセス', how_h2:'LexAI の使い方', how_sub:'アップロードからレポートまで 10 秒以内。',
+    step1_h:'アップロードまたは貼り付け', step1_p:'ファイルをドラッグするか、テキストを貼り付けます。',
+    step2_h:'AI が全文を読む', step2_p:'Gemini AI がすべての条項を読み取り、数秒でリスクを特定します。',
+    step3_h:'レポートを受け取る', step3_p:'リスクレベルと対応策を含む構造化レポートが届きます。',
+    step4_h:'追加質問', step4_p:'AI 弁護士に任意の条項について質問できます。',
+    feat_eye:'なぜ LexAI か', feat_h2:'すべての人に、世界中で', feat_sub:'法律の理解は特権であってはなりません。',
+    f1_h:'200以上の言語', f1_p:'日本語・英語・アラビア語など、あらゆる言語の契約書をアップロードできます。',
+    f2_h:'深層リスク検出', f2_p:'不公正な条項、過大な責任、異常な条件を自動的にフラグします。',
+    f3_h:'AI 弁護士チャット', f3_p:'24時間いつでも即時回答。予約不要・時間課金なし。',
+    f4_h:'役割対応分析', f4_p:'従業員・賃借人・買主など役割を指定すると、AI があなたの利益を守るよう分析をカスタマイズします。',
+    f5_h:'プライバシー重視設計', f5_p:'テキストは Google AI に直接送信。LexAI はデータを一切保存しません。',
+    f6_h:'即時結果', f6_p:'5秒以内に完全分析。Google Gemini を活用。',
+    price_eye:'シンプルな料金', price_h2:'無料で始め、いつでもアップグレード', price_sub:'クレジットカード不要で開始できます。',
+    faq_eye:'よくある質問', faq_h2:'よくある質問', faq_sub:'LexAI について知っておくべきすべて。',
+  },
+  ko: {
+    flag:'🇰🇷', label:'한국어',
+    nav_cta:'무료 시작 →',
+    disc_bar_bold:'법적 고지:',
+    disc_bar_text:'LexAI 는 AI 생성 분석을 정보 제공 목적으로만 제공하며 전문적인 법률 조언이 아닙니다. 중요한 법적 결정은 변호사와 상담하세요.',
+    hero_eyebrow:'✦ AI 기반 법률 인텔리전스',
+    hero_h1:'<span class="accent">모든 언어</span>로<br>모든 계약서 이해하기',
+    hero_p:'계약서를 업로드하면 위험 요소, 숨겨진 조항, 의무사항을 즉시 AI 분석해 드립니다. 24시간 AI 변호사와 무료로 채팅하세요.',
+    hero_btn1:'계약서 분석 →', hero_btn2:'AI 변호사 상담',
+    trust1:'200+ 언어', trust2:'무료 시작', trust3:'계정 불필요', trust4:'개인정보 보호',
+    stat1:'지원 언어', stat2:'분석 시간', stat3:'AI 변호사', stat4:'계약 유형', stat5:'무료 시작',
+    types_eye:'분석 범위', types_h2:'모든 계약 유형 지원', types_sub:'고용부터 부동산까지 — LexAI는 모든 주요 계약 범주를 이해합니다.',
+    tool_eye:'AI 법률 어시스턴트', tool_h2:'분석 & 상담', tool_sub:'계약서 텍스트를 붙여넣어 전체 위험 보고서를 받거나 AI 변호사와 실시간으로 채팅하세요.',
+    api_label:'Gemini API 키', api_link:'무료 키 받기 →',
+    tab_analyze:'📄 계약서 분석', tab_lawyer:'💬 AI 변호사 채팅',
+    upload_h:'계약서를 여기에 드롭하거나 클릭하여 찾기', upload_s:'TXT, PDF, DOCX 지원 · 모든 언어 허용',
+    paste_label:'또는 계약서 텍스트 직접 붙여넣기', paste_ph:'계약서 전문을 여기에 붙여넣으세요. 모든 언어 허용됩니다…',
+    ctype_label:'계약 유형', role_label:'계약에서 역할', outlang_label:'보고서 언어',
+    ct_general:'일반 계약', ct_employment:'근로 계약', ct_rental:'임대차 계약',
+    ct_nda:'비밀유지계약(NDA)', ct_service:'서비스 계약', ct_purchase:'매매 계약',
+    ct_partnership:'파트너십/합작', ct_loan:'대출/금융 계약', ct_franchise:'프랜차이즈', ct_ip:'지식재산/라이선스',
+    role_unknown:'모름/일반', role_employee:'직원/근로자', role_employer:'고용주/회사',
+    role_tenant:'임차인', role_landlord:'임대인/집주인', role_buyer:'구매자/클라이언트',
+    role_seller:'판매자/공급업체', role_freelancer:'프리랜서/계약자',
+    privacy_note:'🔒 계약서 텍스트는 Google AI로 직접 전송됩니다. LexAI는 문서를 저장하지 않습니다.',
+    analyze_btn:'계약서 분석 →',
+    how_eye:'간단한 프로세스', how_h2:'LexAI 작동 방식', how_sub:'업로드에서 인사이트까지 10초 이내.',
+    step1_h:'업로드 또는 붙여넣기', step1_p:'파일을 드래그하거나 텍스트를 붙여넣으세요.',
+    step2_h:'AI 전체 읽기', step2_p:'Gemini AI가 모든 조항을 읽고 위험 요소를 몇 초 만에 식별합니다.',
+    step3_h:'보고서 받기', step3_p:'위험 수준과 권장 조치가 포함된 구조화된 보고서를 받습니다.',
+    step4_h:'추가 질문', step4_p:'AI 변호사와 채팅하여 조항을 명확히 하세요.',
+    feat_eye:'LexAI를 선택해야 하는 이유', feat_h2:'모든 사람을 위해, 어디서나', feat_sub:'법률 이해가 특권이어서는 안 됩니다.',
+    f1_h:'200+ 언어', f1_p:'모든 언어로 된 계약서를 업로드하고 모국어로 보고서를 받으세요.',
+    f2_h:'심층 위험 감지', f2_p:'불공정 조항, 과도한 책임, 비정상적인 조건을 자동으로 표시합니다.',
+    f3_h:'AI 변호사 채팅', f3_p:'24/7 즉각적인 답변 — 예약 불필요, 시간당 청구 없음.',
+    f4_h:'역할 인식 분석', f4_p:'직원, 임차인, 구매자 등을 지정하면 AI가 해당 역할에 맞게 분석을 조정합니다.',
+    f5_h:'프라이버시 중심 설계', f5_p:'텍스트는 Google AI로 직접 전송됩니다. LexAI는 문서를 절대 저장하지 않습니다.',
+    f6_h:'즉각적인 결과', f6_p:'5초 이내 전체 계약서 분석. Google Gemini 기반.',
+    price_eye:'간단한 가격', price_h2:'무료로 시작하고 언제든지 업그레이드', price_sub:'시작하는 데 신용카드가 필요하지 않습니다.',
+    faq_eye:'질문', faq_h2:'자주 묻는 질문', faq_sub:'LexAI에 대해 알아야 할 모든 것.',
+  },
+  ar: {
+    flag:'🇸🇦', label:'عربي',
+    nav_cta:'ابدأ مجاناً ←',
+    disc_bar_bold:'إشعار قانوني:',
+    disc_bar_text:'يوفر LexAI تحليلاً مُنشأ بالذكاء الاصطناعي لأغراض إعلامية فقط — وليس استشارة قانونية. استشر محامياً مرخصاً للقرارات المهمة.',
+    hero_eyebrow:'✦ الذكاء القانوني بالذكاء الاصطناعي',
+    hero_h1:'افهم أي عقد<br>بـ<span class="accent">أي لغة</span>',
+    hero_p:'ارفع عقدك واحصل على تحليل فوري للمخاطر والبنود المخفية والالتزامات بلغتك الأم. تحدث مع محامي الذكاء الاصطناعي مجاناً على مدار الساعة.',
+    hero_btn1:'تحليل العقد ←', hero_btn2:'التحدث مع المحامي الذكي',
+    trust1:'+200 لغة', trust2:'مجاني للبدء', trust3:'بدون حساب', trust4:'خاص وآمن',
+    stat1:'اللغات', stat2:'وقت التحليل', stat3:'محامي ذكي', stat4:'أنواع العقود', stat5:'للبدء',
+    types_eye:'ما نحلله', types_h2:'جميع أنواع العقود', types_sub:'من عقود العمل إلى العقارات — يفهم LexAI كل فئة عقود.',
+    tool_eye:'مساعدك القانوني الذكي', tool_h2:'تحليل واستشارة', tool_sub:'الصق نص عقدك للحصول على تقرير مخاطر كامل أو تحدث مع المحامي.',
+    api_label:'مفتاح Gemini API', api_link:'احصل على مفتاح مجاني ←',
+    tab_analyze:'📄 تحليل العقد', tab_lawyer:'💬 دردشة المحامي',
+    upload_h:'اسحب عقدك هنا أو انقر للاستعراض', upload_s:'يدعم TXT وPDF وDOCX · أي لغة مقبولة',
+    paste_label:'أو الصق نص العقد مباشرة', paste_ph:'الصق هنا النص الكامل لعقدك. تُقبل أي لغة…',
+    ctype_label:'نوع العقد', role_label:'دورك في هذا العقد', outlang_label:'لغة التقرير',
+    ct_general:'عقد عام', ct_employment:'عقد عمل', ct_rental:'عقد إيجار',
+    ct_nda:'اتفاقية سرية', ct_service:'اتفاقية خدمات', ct_purchase:'عقد شراء',
+    ct_partnership:'شراكة/مشروع مشترك', ct_loan:'قرض/تمويل', ct_franchise:'امتياز تجاري', ct_ip:'ملكية فكرية/ترخيص',
+    role_unknown:'غير متأكد/عام', role_employee:'موظف/عامل', role_employer:'صاحب عمل',
+    role_tenant:'مستأجر', role_landlord:'مالك/مؤجر', role_buyer:'مشتري/عميل',
+    role_seller:'بائع/مورد', role_freelancer:'مستقل/مقاول',
+    privacy_note:'🔒 يُرسل نص عقدك مباشرة إلى ذكاء Google الاصطناعي. لا يخزن LexAI أي مستندات.',
+    analyze_btn:'تحليل العقد ←',
+    how_eye:'عملية بسيطة', how_h2:'كيف يعمل LexAI', how_sub:'من الرفع إلى التقرير في أقل من 10 ثوانٍ.',
+    step1_h:'ارفع أو الصق', step1_p:'اسحب ملف العقد أو الصق النص مباشرة.',
+    step2_h:'الذكاء الاصطناعي يقرأ كل شيء', step2_p:'يقرأ Gemini كل بند ويحدد المخاطر في ثوانٍ.',
+    step3_h:'احصل على تقريرك', step3_p:'تقرير منظم بمستويات المخاطر والإجراءات الموصى بها.',
+    step4_h:'اطرح أسئلة', step4_p:'تحدث مع المحامي الذكي لتوضيح أي بند بلغتك.',
+    feat_eye:'لماذا LexAI', feat_h2:'للجميع في كل مكان', feat_sub:'فهم العقود لا ينبغي أن يكون امتيازاً.',
+    f1_h:'+200 لغة', f1_p:'ارفع العقود بأي لغة واحصل على التقرير بلغتك الأم.',
+    f2_h:'كشف المخاطر العميقة', f2_p:'يُضهر تلقائياً البنود غير العادلة والمسؤوليات المفرطة.',
+    f3_h:'دردشة المحامي الذكي', f3_p:'إجابات فورية على مدار الساعة بدون مواعيد أو فوترة.',
+    f4_h:'تحليل حسب الدور', f4_p:'حدد دورك ليُكيّف الذكاء الاصطناعي التحليل لحماية مصالحك.',
+    f5_h:'تصميم يحترم الخصوصية', f5_p:'يذهب نصك مباشرة إلى ذكاء Google. لا يخزن LexAI مستنداتك أبداً.',
+    f6_h:'نتائج فورية', f6_p:'تحليل كامل في أقل من 5 ثوانٍ. مدعوم بـ Google Gemini.',
+    price_eye:'أسعار بسيطة', price_h2:'ابدأ مجاناً', price_sub:'لا يلزم بطاقة ائتمان.',
+    faq_eye:'أسئلة', faq_h2:'الأسئلة الشائعة', faq_sub:'كل ما تحتاج معرفته عن LexAI.',
+  },
+  pt: {
+    flag:'🇧🇷', label:'PT',
+    nav_cta:'Começar grátis →',
+    disc_bar_bold:'Aviso Legal:',
+    disc_bar_text:'LexAI fornece análises geradas por IA apenas para fins informativos — não é assessoria jurídica. Consulte um advogado para decisões legais importantes.',
+    hero_eyebrow:'✦ Inteligência Jurídica com IA',
+    hero_h1:'Entenda qualquer contrato<br>em <span class="accent">qualquer idioma</span>',
+    hero_p:'Envie seu contrato e obtenha análise instantânea de riscos, cláusulas ocultas e obrigações em seu idioma. Converse com nosso advogado IA 24h por dia.',
+    hero_btn1:'Analisar contrato →', hero_btn2:'Falar com advogado IA',
+    trust1:'200+ idiomas', trust2:'Grátis para começar', trust3:'Sem cadastro', trust4:'Privado e seguro',
+    stat1:'Idiomas', stat2:'Tempo de análise', stat3:'Advogado IA', stat4:'Tipos de contrato', stat5:'Para começar',
+    types_eye:'O que analisamos', types_h2:'Todos os tipos de contratos', types_sub:'Do emprego ao imobiliário — LexAI entende as nuances de cada categoria.',
+    tool_eye:'Seu assistente jurídico IA', tool_h2:'Analisar e consultar', tool_sub:'Cole o texto do contrato para um relatório completo ou converse com o advogado IA.',
+    api_label:'Chave API do Gemini', api_link:'Obter chave grátis →',
+    tab_analyze:'📄 Análise de Contrato', tab_lawyer:'💬 Chat Advogado IA',
+    upload_h:'Solte seu contrato aqui ou clique para navegar', upload_s:'TXT, PDF, DOCX · Qualquer idioma aceito',
+    paste_label:'Ou cole o texto do contrato', paste_ph:'Cole aqui o texto completo do contrato…',
+    ctype_label:'Tipo de contrato', role_label:'Seu papel neste contrato', outlang_label:'Idioma do relatório',
+    ct_general:'Contrato geral', ct_employment:'Contrato de trabalho', ct_rental:'Contrato de aluguel',
+    ct_nda:'NDA / Confidencialidade', ct_service:'Acordo de serviço', ct_purchase:'Contrato de compra',
+    ct_partnership:'Parceria / JV', ct_loan:'Empréstimo / Financeiro', ct_franchise:'Franquia', ct_ip:'Propriedade intelectual',
+    role_unknown:'Não sei / Geral', role_employee:'Funcionário', role_employer:'Empregador',
+    role_tenant:'Inquilino', role_landlord:'Proprietário', role_buyer:'Comprador',
+    role_seller:'Vendedor', role_freelancer:'Freelancer / Prestador',
+    privacy_note:'🔒 Seu texto é enviado diretamente para a IA do Google. LexAI não armazena seus documentos.',
+    analyze_btn:'Analisar contrato →',
+    how_eye:'Processo simples', how_h2:'Como o LexAI funciona', how_sub:'Do arquivo ao relatório em menos de 10 segundos.',
+    step1_h:'Envie ou cole', step1_p:'Arraste o arquivo ou cole o texto diretamente.',
+    step2_h:'IA lê tudo', step2_p:'Gemini lê cada cláusula e identifica riscos em segundos.',
+    step3_h:'Receba seu relatório', step3_p:'Relatório estruturado com níveis de risco e recomendações.',
+    step4_h:'Faça perguntas', step4_p:'Converse com o advogado IA no seu idioma.',
+    feat_eye:'Por que LexAI', feat_h2:'Para todos, em todo lugar', feat_sub:'Entender contratos não deve ser privilégio.',
+    f1_h:'200+ Idiomas', f1_p:'Envie contratos em qualquer idioma e receba o relatório na sua língua.',
+    f2_h:'Detecção de riscos', f2_p:'Marca automaticamente cláusulas injustas e termos incomuns.',
+    f3_h:'Chat Advogado IA', f3_p:'Respostas instantâneas 24h sem consultas ou cobrança por hora.',
+    f4_h:'Análise por função', f4_p:'Informe seu papel e a IA adapta a análise para proteger seus interesses.',
+    f5_h:'Privacidade por design', f5_p:'Seu texto vai direto para a IA do Google. LexAI nunca armazena documentos.',
+    f6_h:'Resultados instantâneos', f6_p:'Análise completa em menos de 5 segundos. Powered by Google Gemini.',
+    price_eye:'Preços simples', price_h2:'Comece grátis', price_sub:'Sem cartão de crédito para começar.',
+    faq_eye:'Perguntas', faq_h2:'Perguntas frequentes', faq_sub:'Tudo o que você precisa saber sobre o LexAI.',
+  },
+};
+
+let currentLang = 'en';
+
+function toggleLangMenu(){
+  document.getElementById('langDropdown').classList.toggle('open');
+}
+document.addEventListener('click', e=>{
+  if(!document.getElementById('langSwitcher').contains(e.target)){
+    document.getElementById('langDropdown').classList.remove('open');
+  }
+});
+
+function setLang(code){
+  currentLang = code;
+  const L = LANGS[code];
+  document.getElementById('currentFlag').textContent = L.flag;
+  document.getElementById('currentLangLabel').textContent = L.label;
+  document.getElementById('langDropdown').classList.remove('open');
+
+  // update active state
+  document.querySelectorAll('.lang-opt').forEach((el,i)=>{
+    el.classList.toggle('active', Object.keys(LANGS)[i]===code);
+  });
+
+  // RTL support for Arabic
+  document.body.dir = code==='ar' ? 'rtl' : 'ltr';
+
+  // Update all data-i18n elements
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.getAttribute('data-i18n');
+    if(L[key] !== undefined) el.innerHTML = L[key];
+  });
+
+  // Update placeholders
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
+    const key = el.getAttribute('data-i18n-placeholder');
+    if(L[key] !== undefined) el.placeholder = L[key];
+  });
+
+  // Update page title
+  document.title = code==='zh' ? 'LexAI — AI 合同分析 & 法律助手' :
+                   code==='zh_tw' ? 'LexAI — AI 合約分析 & 法律助手' :
+                   code==='ja' ? 'LexAI — AI 契約書分析 & 法律アシスタント' :
+                   code==='ko' ? 'LexAI — AI 계약서 분석 & 법률 어시스턴트' :
+                   code==='ar' ? 'LexAI — محلل العقود بالذكاء الاصطناعي' :
+                   'LexAI — AI Contract Analyzer & Legal Assistant';
+
+  // Update chat quick questions
+  const qqMap = {
+    en:['What is a non-compete clause?','Is this contract enforceable?','What are my rights as a tenant?','How do I negotiate a contract?','What is force majeure?','Explain arbitration clauses'],
+    zh:['什么是竞业禁止条款？','这份合同是否具有法律效力？','我作为租户有哪些权利？','如何谈判合同条款？','什么是不可抗力？','解释仲裁条款'],
+    zh_tw:['什麼是競業禁止條款？','這份合約是否具有法律效力？','我作為租戶有哪些權利？','如何談判合約條款？','什麼是不可抗力？','解釋仲裁條款'],
+    es:['¿Qué es una cláusula de no competencia?','¿Es ejecutable este contrato?','¿Cuáles son mis derechos como inquilino?','¿Cómo negocio un contrato?','¿Qué es la fuerza mayor?','Explica las cláusulas de arbitraje'],
+    fr:['Qu\'est-ce qu\'une clause de non-concurrence?','Ce contrat est-il exécutoire?','Quels sont mes droits en tant que locataire?','Comment négocier un contrat?','Qu\'est-ce que la force majeure?','Expliquez les clauses d\'arbitrage'],
+    de:['Was ist eine Wettbewerbsklausel?','Ist dieser Vertrag durchsetzbar?','Was sind meine Rechte als Mieter?','Wie verhandele ich einen Vertrag?','Was ist höhere Gewalt?','Erklären Sie Schiedsklauseln'],
+    ja:['競業避止条項とは何ですか？','この契約は執行可能ですか？','賃借人としての権利は？','契約の交渉方法は？','不可抗力とは何ですか？','仲裁条項を説明してください'],
+    ko:['경업금지 조항이란 무엇인가요?','이 계약은 집행 가능한가요?','임차인으로서 내 권리는?','계약 협상 방법은?','불가항력이란 무엇인가요?','중재 조항을 설명해주세요'],
+    ar:['ما هو شرط عدم المنافسة؟','هل هذا العقد قابل للتنفيذ؟','ما حقوقي كمستأجر؟','كيف أتفاوض على العقد؟','ما هي القوة القاهرة؟','اشرح بنود التحكيم'],
+    pt:['O que é uma cláusula de não concorrência?','Este contrato é executável?','Quais são meus direitos como inquilino?','Como negocio um contrato?','O que é força maior?','Explique cláusulas de arbitragem'],
+  };
+  const qqs = qqMap[code] || qqMap.en;
+  document.querySelectorAll('.qq').forEach((el,i)=>{ if(qqs[i]) el.textContent=qqs[i]; });
+}
+
+
+function switchTab(t){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('panel-'+t).classList.add('on');
+  document.querySelectorAll('.tab-btn')[t==='analyze'?0:1].classList.add('on');
+}
+
+function toggleFaq(el){
+  const item=el.parentElement;
+  item.classList.toggle('open');
+}
+
+// ─── DRAG & DROP ───
+const dz=document.getElementById('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{
+  e.preventDefault();dz.classList.remove('over');
+  const f=e.dataTransfer.files[0]; if(f) loadFile(f);
+});
+document.getElementById('fileIn').addEventListener('change',e=>{
+  if(e.target.files[0]) loadFile(e.target.files[0]);
+});
+function loadFile(f){
+  document.getElementById('fileName').textContent='✓ '+f.name+' loaded';
+  if(f.type==='text/plain'){
+    const r=new FileReader();
+    r.onload=e=>document.getElementById('contractTxt').value=e.target.result;
+    r.readAsText(f);
+  }
+}
+
+// ─── BACKEND CONFIG ───
+function getBaseUrl(){
+  return (document.getElementById('apiKey').value || 'http://localhost:8000').replace(/\/$/, '');
+}
+
+async function testConnection(){
+  const statusEl = document.getElementById('connStatus');
+  statusEl.textContent = '⏳ Testing…';
+  statusEl.style.color = 'var(--muted)';
+  try {
+    const res = await fetch(getBaseUrl() + '/health', { signal: AbortSignal.timeout(5000) });
+    if(res.ok){
+      statusEl.textContent = '🟢 Connected';
+      statusEl.style.color = 'var(--green)';
+    } else {
+      throw new Error('HTTP ' + res.status);
+    }
+  } catch(e){
+    statusEl.textContent = '🔴 Cannot reach server';
+    statusEl.style.color = 'var(--rust)';
+  }
+}
+
+// ─── MARKDOWN → HTML ───
+function md(text){
+  return text
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/^#{1,3} (.+)$/gm,'<h4 style="font-family:\'Cormorant Garamond\',serif;font-size:1rem;margin:.8rem 0 .3rem">$1</h4>')
+    .replace(/^[-•] (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>.*<\/li>(\n|$))+/g,'<ul style="margin:.5rem 0 .5rem 1.2rem;display:flex;flex-direction:column;gap:.3rem">$&</ul>')
+    .replace(/\n\n/g,'<br><br>')
+    .replace(/\n/g,'<br>');
+}
+
+// ─── ANALYZE — calls POST /api/analyze ───
+async function analyze(){
+  const txt = document.getElementById('contractTxt').value.trim();
+  if(!txt){ alert('Please paste contract text or upload a text file first.'); return; }
+
+  const contractType = document.getElementById('cType').value;
+  const userRole     = document.getElementById('cRole').value;
+  const jurisdiction = document.getElementById('cJurisdiction').value;
+  const reportLang   = document.getElementById('outLang').value;
+
+  document.getElementById('aLoader').classList.add('on');
+  document.getElementById('aResult').classList.remove('on');
+  startProgress(jurisdiction);
+
+  try {
+    const res = await fetch(getBaseUrl() + '/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contract_text: txt.substring(0, 4500),
+        contract_type: contractType,
+        jurisdiction:  jurisdiction,
+        user_role:     userRole,
+        report_lang:   reportLang,
+      }),
+    });
+
+    if(!res.ok){
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err.detail || `Server error ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    // ── Risk badge & meter ──
+    const rb  = document.getElementById('riskBadge');
+    const pct = Math.min(100, Math.max(0, Number(data.risk_pct) || 50));
+    document.getElementById('riskBar').style.width = pct + '%';
+    document.getElementById('riskPct').textContent  = pct + '%';
+
+    if(data.risk_level === 'Red'){
+      rb.textContent = '🔴 High Risk';   rb.className = 'badge badge-h';
+    } else if(data.risk_level === 'Yellow'){
+      rb.textContent = '🟡 Medium Risk'; rb.className = 'badge badge-m';
+    } else {
+      rb.textContent = '🟢 Low Risk';    rb.className = 'badge badge-l';
+    }
+
+    // ── Module 1: Executive Summary ──
+    document.getElementById('mod1Body').innerHTML = `
+      <div class="alert-box alert-${data.risk_level==='Red'?'warn':data.risk_level==='Green'?'ok':'info'}" style="margin-bottom:.8rem">
+        <span class="alert-ico">${data.risk_level==='Red'?'⚠️':data.risk_level==='Green'?'✅':'⚡'}</span>
+        <div>${md(data.executive_summary || '')}</div>
+      </div>
+      <div class="alert-box alert-info">
+        <span class="alert-ico">📋</span>
+        <div><strong>Contract Match:</strong> ${md(data.contract_match || '')}</div>
+      </div>`;
+
+    // ── Module 2: Clause Matrix ──
+    const rows = (data.module2_rows || []).map(r => {
+      const cls = r.risk === '🔴' ? 'row-h' : r.risk === '🟡' ? 'row-m' : 'row-l';
+      return `<tr class="${cls}">
+        <td><strong>${r.clause || ''}</strong></td>
+        <td style="text-align:center;font-size:1.1rem;white-space:nowrap">${r.risk || ''}</td>
+        <td>${md(r.implication || '')}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('mod2Body').innerHTML = rows.length
+      ? `<table class="clause-table">
+          <thead><tr><th>Clause / Issue</th><th>Risk</th><th>Legal Implication for ${userRole}</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`
+      : '<em style="color:var(--muted)">No specific clauses flagged.</em>';
+
+    // ── Module 3: Redline ──
+    const redlines = (data.module3_items || []).map((item, i) => `
+      <div class="redline-block">
+        <div class="redline-header">
+          <span>✏️</span> <span>${item.clause_name || 'Clause ' + (i + 1)}</span>
+        </div>
+        <div class="redline-orig">${item.original  || '—'}</div>
+        <div class="redline-new">${item.revised    || '—'}</div>
+        <div class="redline-talk">${item.talk_track || '—'}</div>
+      </div>`).join('');
+    document.getElementById('mod3Body').innerHTML = redlines ||
+      '<div class="alert-box alert-ok"><span class="alert-ico">✅</span><div>No red or yellow clauses requiring revision were identified.</div></div>';
+
+    // ── Module 4: Local Alerts ──
+    const dateFlag    = data.module4_date_flag    || 'None detected';
+    const crossBorder = data.module4_crossborder  || 'None applicable';
+    const isDateOk    = dateFlag.toLowerCase().includes('none');
+    const isCrossOk   = crossBorder.toLowerCase().includes('none');
+    document.getElementById('mod4Body').innerHTML = `
+      <div class="alert-box ${isDateOk ? 'alert-ok' : 'alert-warn'}">
+        <span class="alert-ico">${isDateOk ? '✅' : '📅'}</span>
+        <div><strong>Format / Date Check:</strong> ${md(dateFlag)}</div>
+      </div>
+      <div class="alert-box ${isCrossOk ? 'alert-ok' : 'alert-warn'}">
+        <span class="alert-ico">${isCrossOk ? '✅' : '🌐'}</span>
+        <div><strong>Cross-border Conflict:</strong> ${md(crossBorder)}</div>
+      </div>`;
+
+    document.getElementById('aResult').classList.add('on');
+
+  } catch(e){
+    stopProgress();
+    // Friendly error message
+    const msg = e.message.includes('fetch') || e.message.includes('Failed')
+      ? '❌ Cannot connect to backend.\n\nMake sure your server is running:\n  uvicorn main:app --reload\n\nThen check the Backend URL above.'
+      : '❌ ' + e.message;
+    alert(msg);
+  }
+
+  stopProgress();
+  document.getElementById('aLoader').classList.remove('on');
+}
+
+// ─── CHAT — calls POST /api/chat ───
+const history = [];
+
+async function chat(){
+  const inp = document.getElementById('chatIn');
+  const msg = inp.value.trim();
+  if(!msg) return;
+  const lang = document.getElementById('chatLang').value;
+  inp.value = '';
+  addMsg('u', msg);
+  history.push({ role: 'user', content: msg });
+  showTyping(true);
+
+  try {
+    const res = await fetch(getBaseUrl() + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message:  msg,
+        history:  history.slice(0, -1).slice(-10), // last 10 turns
+        language: lang,
+      }),
+    });
+
+    if(!res.ok){
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err.detail || `Server error ${res.status}`);
+    }
+
+    const data = await res.json();
+    history.push({ role: 'assistant', content: data.reply });
+    showTyping(false);
+    addMsg('a', data.reply);
+
+  } catch(e){
+    showTyping(false);
+    const msg2 = e.message.includes('fetch') || e.message.includes('Failed')
+      ? 'Cannot reach backend. Is the server running?'
+      : 'Error: ' + e.message;
+    addMsg('a', '⚠️ ' + msg2);
+  }
+}
+
+function askQuick(el){
+  document.getElementById('chatIn').value = el.textContent;
+  chat();
+}
+
+function addMsg(who, text){
+  const msgs = document.getElementById('chatMsgs');
+  const d = document.createElement('div');
+  d.className = 'msg msg-' + who;
+  d.innerHTML = `<div class="msg-who">${who === 'u' ? 'You' : '⚖️ LexAI Lawyer'}</div>
+    <div class="bubble">${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>')}</div>`;
+  msgs.appendChild(d);
+  msgs.scrollTop = 99999;
+}
+
+function showTyping(on){
+  let t = document.getElementById('typingEl');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'typingEl';
+    t.className = 'typing';
+    t.innerHTML = '<div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>';
+    document.getElementById('chatMsgs').appendChild(t);
+  }
+  t.classList.toggle('on', on);
+  if(on) document.getElementById('chatMsgs').scrollTop = 99999;
+}
+
+// ═══════════════════════════════════════════════
+// ─── AUTH SYSTEM ────────────────────────────────
+// ═══════════════════════════════════════════════
+
+// ── State ──
+let authToken = localStorage.getItem('lexai_token') || null;
+let authUser  = JSON.parse(localStorage.getItem('lexai_user') || 'null');
+
+// ── Modal open/close ──
+function openModal(tab = 'login'){
+  document.getElementById('authModal').classList.add('open');
+  switchModalTab(tab);
+  clearModalMessages();
+}
+function closeModal(){
+  document.getElementById('authModal').classList.remove('open');
+}
+function switchModalTab(tab){
+  ['login','register','forgot'].forEach(t=>{
+    document.getElementById('form'+t.charAt(0).toUpperCase()+t.slice(1)).style.display = t===tab?'block':'none';
+  });
+  document.querySelectorAll('.modal-tab').forEach((el,i)=>{
+    el.classList.toggle('on', (i===0&&tab==='login')||(i===1&&tab==='register'));
+  });
+  clearModalMessages();
+}
+function clearModalMessages(){
+  document.getElementById('modalErr').classList.remove('show');
+  document.getElementById('modalOk').classList.remove('show');
+}
+function showModalErr(msg){ const el=document.getElementById('modalErr'); el.textContent=msg; el.classList.add('show'); document.getElementById('modalOk').classList.remove('show'); }
+function showModalOk(msg){  const el=document.getElementById('modalOk');  el.textContent=msg; el.classList.add('show'); document.getElementById('modalErr').classList.remove('show'); }
+
+// ── Register ──
+async function submitRegister(){
+  const btn   = document.getElementById('registerBtn');
+  const email = document.getElementById('regEmail').value.trim();
+  const pass  = document.getElementById('regPassword').value;
+  const name  = document.getElementById('regName').value.trim();
+  if(!email||!pass){ showModalErr('Please fill in all required fields.'); return; }
+  btn.disabled = true; btn.textContent = 'Creating account…';
+  try {
+    const res  = await fetch(getBaseUrl()+'/api/auth/register', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password:pass, display_name:name }),
+    });
+    const data = await res.json();
+    if(!res.ok){ showModalErr(data.detail||'Registration failed.'); return; }
+    saveAuth(data.access_token, data.user);
+    closeModal();
+    updateNavAuth();
+    loadUsage();
+  } catch(e){ showModalErr('Cannot reach server. Is it running?'); }
+  finally { btn.disabled=false; btn.textContent='Create Account →'; }
+}
+
+// ── Login ──
+async function submitLogin(){
+  const btn   = document.getElementById('loginBtn');
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPassword').value;
+  if(!email||!pass){ showModalErr('Please enter email and password.'); return; }
+  btn.disabled=true; btn.textContent='Logging in…';
+  try {
+    const res  = await fetch(getBaseUrl()+'/api/auth/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password:pass }),
+    });
+    const data = await res.json();
+    if(!res.ok){ showModalErr(data.detail||'Incorrect email or password.'); return; }
+    saveAuth(data.access_token, data.user);
+    closeModal();
+    updateNavAuth();
+    loadUsage();
+  } catch(e){ showModalErr('Cannot reach server. Is it running?'); }
+  finally { btn.disabled=false; btn.textContent='Log In →'; }
+}
+
+// ── Forgot password ──
+async function submitForgot(){
+  const email = document.getElementById('forgotEmail').value.trim();
+  if(!email){ showModalErr('Please enter your email.'); return; }
+  try {
+    await fetch(getBaseUrl()+'/api/email/forgot-password', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email }),
+    });
+    showModalOk('If this email exists, a reset link has been sent.');
+  } catch(e){ showModalErr('Cannot reach server.'); }
+}
+
+// ── Save / clear auth ──
+function saveAuth(token, user){
+  authToken = token; authUser = user;
+  localStorage.setItem('lexai_token', token);
+  localStorage.setItem('lexai_user',  JSON.stringify(user));
+}
+function clearAuth(){
+  authToken=null; authUser=null;
+  localStorage.removeItem('lexai_token');
+  localStorage.removeItem('lexai_user');
+}
+
+// ── Logout ──
+function logout(){
+  clearAuth(); closeUserMenu(); updateNavAuth();
+}
+
+// ── Update nav based on auth state ──
+function updateNavAuth(){
+  const loggedIn = !!authToken && !!authUser;
+  document.getElementById('guestBtns').style.display = loggedIn ? 'none' : 'flex';
+  document.getElementById('userMenu').style.display  = loggedIn ? 'block' : 'none';
+  if(loggedIn && authUser){
+    const initials = (authUser.display_name||authUser.email||'?').charAt(0).toUpperCase();
+    document.getElementById('navAvatar').textContent = initials;
+    document.getElementById('navName').textContent   = authUser.display_name || authUser.email.split('@')[0];
+    document.getElementById('dropName').textContent  = authUser.display_name || authUser.email;
+    document.getElementById('dropPlan').textContent  = (authUser.plan||'free').toUpperCase();
+  }
+}
+
+// ── Load usage from backend ──
+async function loadUsage(){
+  if(!authToken) return;
+  try {
+    const res  = await fetch(getBaseUrl()+'/api/auth/usage', {
+      headers:{ 'Authorization':'Bearer '+authToken }
+    });
+    if(!res.ok) return;
+    const data = await res.json();
+    const a    = data.usage?.analyze || {};
+    const pct  = a.limit > 0 ? Math.round((a.used/a.limit)*100) : 0;
+    document.getElementById('usageBar').style.width = pct+'%';
+    document.getElementById('usageText').textContent = `${a.used||0} / ${a.limit||3} analyses used`;
+    // Show warning if ≤1 left
+    const notice = document.getElementById('usageNotice');
+    if(notice){
+      if((a.limit-a.used) <= 1 && data.plan==='free'){
+        notice.className='usage-notice show '+(a.remaining===0?'danger':'warn');
+        notice.innerHTML = a.remaining===0
+          ? '⚠️ You have used all free analyses. <a style="color:var(--gold);font-weight:600;cursor:pointer" onclick="openModal()">Upgrade to Pro →</a>'
+          : '⚡ 1 free analysis remaining. <a style="color:var(--gold);font-weight:600;cursor:pointer" onclick="openModal()">Upgrade for unlimited →</a>';
+      }
+    }
+  } catch(e){}
+}
+
+// ── Change password ──
+function openChangePassword(){
+  closeUserMenu();
+  const np = prompt('Enter new password (min 8 chars, include a number):');
+  if(!np) return;
+  if(np.length < 8 || !/[0-9]/.test(np)){ alert('Password must be ≥8 chars and include a number.'); return; }
+  const cp = prompt('Enter your current password to confirm:');
+  if(!cp) return;
+  fetch(getBaseUrl()+'/api/auth/change-password', {
+    method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+authToken},
+    body: JSON.stringify({ current_password:cp, new_password:np }),
+  }).then(r=>r.json()).then(d=>{ alert(d.message||d.detail||'Done.'); }).catch(()=>alert('Error.'));
+}
+
+// ── User dropdown toggle ──
+function toggleUserMenu(){ document.getElementById('userDropdown').classList.toggle('open'); }
+function closeUserMenu(){   document.getElementById('userDropdown').classList.remove('open'); }
+document.addEventListener('click', e=>{
+  const um = document.getElementById('userMenu');
+  if(um && !um.contains(e.target)) closeUserMenu();
+});
+
+// ── On page load: restore session ──
+updateNavAuth();
+if(authToken) loadUsage();
+</script>
+</body>
+</html>
